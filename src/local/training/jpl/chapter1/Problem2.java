@@ -1,9 +1,12 @@
 package local.training.jpl.chapter1;
 
-public class Problem2 {
+import local.training.ExecMethod;
+
+public class Problem2 implements ExecMethod {
 	
 	/** Launcher から呼び出される起動メソッドです。 */
+	@Override
 	public void exec() {
-		System.out.println("unko2");
+		System.out.println("HelloWorld");
 	}
 }

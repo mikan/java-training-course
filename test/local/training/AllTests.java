@@ -1,4 +1,4 @@
-package local.training.jpl;
+package local.training;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
