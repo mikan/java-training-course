@@ -7,7 +7,7 @@ public class Launcher {
 	/** main メソッド */
 	public static void main(String[] args) {
 		// 練習問題を実行
-		local.jpl.chapter1.Problem2.main(null);
+		local.JPL.ch01.ex01_01.Problem01.main(null);
 	}
 
 }
