@@ -1,7 +1,7 @@
 /*
  * Copyright(C) 2013 Yutaka Kato
  */
-package local.JPL.ch02.ex02_02;
+package local.JPL.ch02.ex02_12;
 
 /**
  * リンクリストの要素を示します。
@@ -21,12 +21,38 @@ public class LinkedList {
 	 * @param nextElement 次の要素
 	 * @throws NullPointerException 要素が null の場合
 	 */
-	public LinkedList(Object element, LinkedList next) {
+	public LinkedList(Object element) {
 		if (element == null) {
 			throw new NullPointerException("Element is null.");
 		}
 		this.element = element;
-		this.next = next;
+		this.next = null;
+	}
+	
+	/**
+	 * LinkedList を初期化します。次の要素も同時に指定できます。
+	 * 
+	 * @param element 要素
+	 * @param nextElement 次の要素
+	 * @throws NullPointerException 要素が null の場合
+	 */
+	public LinkedList(Object element, LinkedList... next) {
+		if (element == null) {
+			throw new NullPointerException("Element is null.");
+		}
+		this.element = element;
+		LinkedList current = this;
+		for (LinkedList l : next) {
+			if (l.hasNext()) {
+				current.setNext(l);
+				current = l;
+				current.setNext(l.getNext());
+				current = current.getNext();
+			} else {
+				current.setNext(l);
+				current = current.getNext();				
+			}
+		}
 	}
 	
 	/**
@@ -78,5 +104,10 @@ public class LinkedList {
 			current = current.getNext();
 		}
 		return count;
+	}
+	
+	@Override
+	public String toString() {
+		return element.toString();
 	}
 }

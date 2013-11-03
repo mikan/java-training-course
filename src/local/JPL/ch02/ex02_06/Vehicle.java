@@ -3,8 +3,7 @@
  */
 package local.JPL.ch02.ex02_06;
 
-import java.util.ArrayList;
-import java.util.List;
+import local.JPL.ch02.ex02_02.LinkedList;
 
 public class Vehicle {
 	
@@ -20,12 +19,17 @@ public class Vehicle {
 	 * @param args コマンドライン引数
 	 */
 	public static void main(String[] args) {
-		List<Vehicle> vehicles = new ArrayList<Vehicle>();
-		vehicles.add(new Vehicle("mycar"));
-		vehicles.add(new Vehicle("mytruck"));
-		vehicles.add(new Vehicle("mysportscar"));
-		for (Vehicle v : vehicles) {
-			System.out.println(v);
+		LinkedList root = new LinkedList(new Vehicle("mycar"), null);
+		root.setNext(new LinkedList(new Vehicle("mytruck"), null));
+		root.getNext().setNext(new LinkedList(new Vehicle("mysportscar"), null));
+		System.out.println("size: " + root.size());
+		LinkedList current = root;
+		while (true) {
+			System.out.println(current.getBody());
+			if (!current.hasNext()) {
+				break;
+			}
+			current = current.getNext();
 		}
 	}
 	
