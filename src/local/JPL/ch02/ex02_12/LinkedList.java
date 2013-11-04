@@ -36,7 +36,7 @@ public class LinkedList {
 	 * @param nextElement 次の要素
 	 * @throws NullPointerException 要素が null の場合
 	 */
-	public LinkedList(Object element, LinkedList... next) {
+	public LinkedList(Object element, LinkedList ... next) {
 		if (element == null) {
 			throw new NullPointerException("Element is null.");
 		}

@@ -118,9 +118,13 @@ public class Vehicle {
 	/**
 	 * 方向を変更します。
 	 * @param direction TURN_LEFT または TURN_RIGHT で指定
-	 * @throws TURN_LEFT か TURN_RIGHT でない場合
+	 * @throws NullPointerException 引数が null の場合
+	 * @throws IllegalArgumentException TURN_LEFT か TURN_RIGHT でない場合
 	 */
 	public void turn(Object direction) {
+		if (direction == null) {
+			throw new NullPointerException();
+		}
 		if (direction == TURN_LEFT) {
 			this.direction = 270;
 		} else if (direction == TURN_RIGHT) {

@@ -78,7 +78,7 @@ public class Vehicle {
 	 * 別名を追加します。
 	 * @param altName 別名
 	 */
-	public void setAlternateName(String... altName) {	// 可変引数
+	public void setAlternateName(String ... altName) {	// 可変引数
 		for (String s : altName) {
 			alternateNames.add(s);
 		}

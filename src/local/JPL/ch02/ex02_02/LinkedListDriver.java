@@ -3,6 +3,7 @@
  */
 package local.JPL.ch02.ex02_02;
 
+/** LinkedList のテストドライバです。 */
 public class LinkedListDriver {
 
 	public static void main(String[] args) {

@@ -3,10 +3,6 @@
  */
 package local.JPL.ch01.ex01_14;
 
-import static org.junit.Assert.*;
-
-import org.junit.Test;
-
 /** 初代ウォークマン */
 public class Walkman {
 
@@ -93,40 +89,5 @@ public class Walkman {
 	 */
 	public boolean isPlaying() {
 		return playing;
-	}
-	
-	/** 正しい規格のテープを正常に受け付けるか試します。 */
-	@Test
-	public void testSetTape_normalInput() {
-		Tape testTape = new Tape();
-		Walkman walkman = new Walkman();
-		walkman.setTape(testTape);
-		Tape accTape = new Tape(Tape.Type.ACC);
-		walkman.setTape(accTape);
-	}
-	
-	/** 規格外のテープが通ってしまわないか試します。 */
-	@Test
-	public void testSetTape_illegalTypes() {
-		Tape elcastTape = new Tape(Tape.Type.ELCASET);
-		Walkman walkman = new Walkman();
-		try {
-			walkman.setTape(elcastTape);
-			fail("規格外が通ってしまった。");
-		} catch (IllegalArgumentException e) {
-			// Test success
-		}
-	}
-	
-	/** テープの取り出し結果が正しいか試します。 */
-	@Test
-	public void testSetTape_retrurn() {
-		Tape testTape1 = new Tape();
-		Tape tsetTape2 = new Tape();
-		Tape testTape3 = new Tape();
-		Walkman walkman = new Walkman();
-		assertNull(walkman.setTape(testTape1));		// null が返れば OK
-		assertNotNull(walkman.setTape(tsetTape2));	// tape1 が返ってくる (null でない) はず
-		assertTrue(walkman.setTape(testTape3).equals(tsetTape2));	// tape2 が返ってくるはず
 	}
 }
