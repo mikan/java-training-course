@@ -14,23 +14,6 @@ public class Vehicle {
 	private int id;
 	private static int lastId;
 	
-	/**
-	 * main
-	 * 
-	 * @param args コマンドライン引数
-	 */
-	public static void main(String[] args) {
-		List<Vehicle> vehicles = new ArrayList<Vehicle>();
-		vehicles.add(new Vehicle("mycar"));
-		vehicles.add(new Vehicle("mytruck"));
-		vehicles.add(new Vehicle("mysportscar"));
-		vehicles.add(new Vehicle());
-		vehicles.add(new Vehicle());
-		for (Vehicle v : vehicles) {
-			System.out.println(v);
-		}
-	}
-	
 	public Vehicle() {
 		speed = 0.0;
 		direction = 0;
