@@ -3,20 +3,27 @@
  */
 package local.JPL.ch03.ex03_02;
 
-public class X {
-	protected int xMask = 0x00ff;
-	protected int fullMask;
-	
-	{
-		System.out.printf(Y.FORMAT, Y.step++, "X's field was initialized", xMask, 0, fullMask);
-	}
-	
-	public X() {
-		fullMask = xMask;
-		System.out.printf(Y.FORMAT, Y.step++, "X's constructor was executed", xMask, 0, fullMask);
-	}
-	
-	public int mask(int orig) {
-		return (orig & fullMask);
-	}
+public abstract class X {
+
+    {
+        print("Field default value");
+    }
+
+    protected int xMask = 0x00ff;
+    protected int fullMask;
+
+    {
+        print("X's field was initialized");
+    }
+
+    public X() {
+        fullMask = xMask;
+        print("X's constructor was executed");
+    }
+
+    public int mask(int orig) {
+        return (orig & fullMask);
+    }
+
+    public abstract void print(String msg);
 }
