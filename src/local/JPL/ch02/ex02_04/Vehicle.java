@@ -8,7 +8,7 @@ public class Vehicle {
 	private double speed;
 	private int direction;
 	private String name;
-	private int id;
+	private final int id;
 	private static int lastId;
 //	private static final int lastId = 0;
 	

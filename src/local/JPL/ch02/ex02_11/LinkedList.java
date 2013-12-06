@@ -14,6 +14,14 @@ public class LinkedList {
 	/** 次の要素 */
 	LinkedList next;
 	
+	public static void main(String[] args) {
+	    LinkedList list = new LinkedList(new String("E1"));
+	    list.setNext(new LinkedList(new String("E2")));
+	    list.getNext().setNext(new LinkedList(new String("E3")));
+	    list.getNext().getNext().setNext(new LinkedList(new String("E4")));
+	    System.out.println(list.toString());
+	}
+	
 	/**
 	 * LinkedList を初期化します。
 	 * 
@@ -97,6 +105,13 @@ public class LinkedList {
 	
 	@Override
 	public String toString() {
-		return element.toString();
+	    String msg = element.toString();
+	    LinkedList list = this;
+	    while (list.hasNext()) {
+            list = list.getNext();
+	        msg += ", ";
+	        msg += list.getBody().toString();
+	    }
+		return msg;
 	}
 }
