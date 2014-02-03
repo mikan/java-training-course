@@ -3,7 +3,7 @@
  */
 package local.JPL.ch06.ex06_05;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 

@@ -3,7 +3,8 @@
  */
 package local.JPL.ch09.ex09_01;
 
-import static java.lang.Double.*;
+import static java.lang.Double.NEGATIVE_INFINITY;
+import static java.lang.Double.POSITIVE_INFINITY;
 
 /** Test of calculate infinities */
 public class Infinity {

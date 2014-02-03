@@ -3,7 +3,7 @@
  */
 package local.JPL.ch01.ex01_16;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 

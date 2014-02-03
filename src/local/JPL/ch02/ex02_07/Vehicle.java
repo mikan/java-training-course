@@ -3,8 +3,6 @@
  */
 package local.JPL.ch02.ex02_07;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class Vehicle {
 	

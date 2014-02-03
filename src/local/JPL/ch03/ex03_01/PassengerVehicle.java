@@ -11,7 +11,8 @@ import java.util.List;
  */
 public class PassengerVehicle extends Vehicle {
 
-	private int maxPassengers = 5;
+	private final int maxPassengers;
+	private static final int DEFAULT_MAX_PASSENGERS = 5;
 	private int passengers;
 
 	public static void main(String[] args) {
@@ -35,6 +36,7 @@ public class PassengerVehicle extends Vehicle {
 	 */
 	public PassengerVehicle() {
 		super();
+		maxPassengers = DEFAULT_MAX_PASSENGERS;
 	}
 
 	/**
@@ -43,6 +45,7 @@ public class PassengerVehicle extends Vehicle {
 	 */
 	public PassengerVehicle(String name) {
 		super(name);
+		maxPassengers = DEFAULT_MAX_PASSENGERS;
 	}
 
 	/**
