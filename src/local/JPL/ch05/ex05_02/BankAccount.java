@@ -54,23 +54,34 @@ public class BankAccount {
     }
 
     public History history() {
-        return history;
+        return history.clone();
     }
 
-    public static class History {
+    public static class History implements Cloneable {
         private static final int MAX = 10;
         Action[] actions = new Action[MAX];
         int cursor = 0;
+        
+        private History() {
+        }
 
         public Action next() {
             return actions[cursor];
         }
         
-        public void add(Action act) {
+        private void add(Action act) {
             if (++cursor == MAX) {
                 cursor = 0;
             }
             actions[cursor] = act;
+        }
+        
+        @Override
+        public History clone() {
+        	History history = new History();
+        	history.actions = this.actions.clone();
+        	history.cursor = this.cursor;
+        	return history;
         }
     }
 }
