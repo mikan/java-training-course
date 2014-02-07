@@ -11,7 +11,7 @@ public enum TrafficSignal {
 	BLINK_RED(new Color(0xff0000)),
 	BLINK_YELLOW(new Color(0xffff00));
 	
-	Color color;
+	private final Color color;
 	TrafficSignal(Color color) {
 		this.color = color;
 	}
