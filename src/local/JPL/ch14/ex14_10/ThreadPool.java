@@ -39,9 +39,8 @@ public class ThreadPool {
         this.queueSize = queueSize;
         threads = new WorkerThread[numberOfThreads];
         queue = new LinkedList<Runnable>();
-        for (int i = 0; i < threads.length; i++) {
+        for (int i = 0; i < threads.length; i++)
             threads[i] = new WorkerThread();
-        }
     }
 
     /**
@@ -79,7 +78,6 @@ public class ThreadPool {
                 }
             } else {
                 throw new IllegalStateException();
-
             }
         }
     }
@@ -111,6 +109,10 @@ public class ThreadPool {
         }
     }
 
+    /**
+     * Worker thread.
+     * @see https://www.ibm.com/developerworks/jp/java/library/j-jtp0730/
+     */
     private class WorkerThread extends Thread {
 
         private boolean stopping;
@@ -135,7 +137,7 @@ public class ThreadPool {
                     runnable.run();
             }
         }
-        
+
         private void stopRequest() {
             stopping = true;
             synchronized (queue) {
