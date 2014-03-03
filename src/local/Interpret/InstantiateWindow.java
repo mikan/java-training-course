@@ -38,10 +38,19 @@ public class InstantiateWindow extends JFrame {
     private JButton okButton;
     private JButton cancelButton;
     private Set<Constructor<?>> constructors;
+    private int index;
+    private boolean array = false;
+    private String arrayName;
 
-    public InstantiateWindow(InterpretWindow interpret, Class<?> cls) {
+    public InstantiateWindow(InterpretWindow interpret, Class<?> cls,
+            String name, int index) {
         this.interpret = interpret;
         this.cls = cls;
+        if (name != null) {
+            array = true;
+            arrayName = name;
+        }
+        this.index = index;
 
         layout = new GridBagLayout();
         getContentPane().setLayout(layout);
@@ -74,6 +83,10 @@ public class InstantiateWindow extends JFrame {
         // Name
         addGrid(new JLabel("Name:"), 1, 5);
         nameField = new JTextField("");
+        if (array) {
+            nameField.setText(name + "[" + index + "]");
+            nameField.setEnabled(false);
+        }
         addGrid(nameField, 1, 6);
 
         // Button pane
@@ -132,7 +145,7 @@ public class InstantiateWindow extends JFrame {
     }
 
     private void showErrorMessage(String message) {
-        JOptionPane.showMessageDialog(InstantiateWindow.this, message, "ERROR",
+        JOptionPane.showMessageDialog(this, message, "ERROR",
                 JOptionPane.ERROR_MESSAGE);
     }
 
@@ -236,7 +249,6 @@ public class InstantiateWindow extends JFrame {
                                 Object p = params[i].getConstructor(
                                         String.class).newInstance(inputParam);
                                 paramData[i] = p;
-                                System.out.println("paramData[" + i + "]=" + p);
                                 continue;
                             } catch (ReflectiveOperationException e1) {
                                 System.err
@@ -254,8 +266,14 @@ public class InstantiateWindow extends JFrame {
                     }
                     // Instantiate with parameter(s)
                     try {
-                        interpret.addObject(cls,
-                                selected.newInstance(paramData), name);
+                        if (array) {
+                            interpret.addArrayCell(
+                                    selected.newInstance(paramData), arrayName,
+                                    index);
+                        } else {
+                            interpret.addObject(cls,
+                                    selected.newInstance(paramData), name);
+                        }
                         setVisible(false);
                     } catch (InstantiationException e1) {
                         showErrorMessage("InstantiationException: "
@@ -270,8 +288,9 @@ public class InstantiateWindow extends JFrame {
                                 + e1.getMessage());
                         return;
                     } catch (InvocationTargetException e1) {
-                        showErrorMessage("InvocationTargetException: "
-                                + e1.getMessage());
+                        showErrorMessage("Exception caught:"
+                                + System.getProperty("line.separator")
+                                + e1.getCause());
                         return;
                     }
                 }
@@ -291,7 +310,7 @@ public class InstantiateWindow extends JFrame {
                 if (selected != null) {
                     Class<?>[] params = selected.getParameterTypes();
                     if (params == null || params.length == 0) {
-                        paramField.setEnabled(false);
+                        //paramField.setEnabled(false);
                     } else {
                         paramField.setEnabled(true);
                     }

@@ -23,7 +23,7 @@ public class AboutDialog extends JDialog implements ActionListener {
         setLayout(new BorderLayout());
         setAlwaysOnTop(true);
 
-        Label aboutLabel = new Label("Interpret");
+        Label aboutLabel = new Label(" Interpret ");
         aboutLabel.setAlignment(Label.CENTER);
         aboutLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 30));
         add(aboutLabel, BorderLayout.NORTH);

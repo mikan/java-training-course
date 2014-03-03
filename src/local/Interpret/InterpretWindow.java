@@ -8,8 +8,15 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,6 +29,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 import javax.swing.DefaultListModel;
+import javax.swing.DropMode;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -59,10 +67,20 @@ public class InterpretWindow extends JFrame {
     private final JButton invokeMethodButton;
     private final JTextField invokeParamsField;
     private static final String NOT_SELECTED = "(not selected)";
+    private static final String OBJECT_PREFIX = "=";
+    private boolean showArrayArea = false;
+    private List<ArrayElement> arrays;
+    private JTree arrayTree;
+    private DefaultTreeModel arrayTreeModel;
+    private DefaultMutableTreeNode arrayRootNode;
+    private JList<ObjectElement> arrayCellList;
+    private DefaultListModel<ObjectElement> arrayCellListModel;
+    private JButton insertNewButton;
 
     public InterpretWindow() {
 
         objects = new ArrayList<ObjectElement>();
+        arrays = new ArrayList<ArrayElement>();
         layout = new GridBagLayout();
 
         // Menu
@@ -78,6 +96,12 @@ public class InterpretWindow extends JFrame {
         newObjectMenuItem.setMnemonic('N');
         newObjectMenuItem.addActionListener(new NewObjectActionListener());
         fileMenu.add(newObjectMenuItem);
+
+        // Menu [File] -> [New array...]
+        JMenuItem newArrayMenuItem = new JMenuItem("New array...");
+        newArrayMenuItem.setMnemonic('r');
+        newArrayMenuItem.addActionListener(new NewArrayActionListener());
+        fileMenu.add(newArrayMenuItem);
 
         // Menu [File] -> [Exit]
         JMenuItem exitMenuItem = new JMenuItem("Exit");
@@ -102,8 +126,9 @@ public class InterpretWindow extends JFrame {
         objectTree.addTreeSelectionListener(new ObjectSelectionListener());
         objectTree.setRootVisible(false);
         objectTree.setSize(300, 300);
+        objectTree.setDragEnabled(true);
         objectTreeModel = (DefaultTreeModel) objectTree.getModel();
-        addGrid(new JLabel("Objects"), 1, 1);
+        addGrid(new JLabel("Objects           "), 1, 1);
         addGrid(new JScrollPane(objectTree), 1, 2, 1, 3);
 
         // Filed list
@@ -127,9 +152,11 @@ public class InterpretWindow extends JFrame {
         FlowLayout fieldControlPanelLayout = new FlowLayout();
         fieldControlPanelLayout.setAlignment(FlowLayout.LEFT);
         fieldControlPanel.setLayout(fieldControlPanelLayout);
+        fieldControlPanel.setPreferredSize(new Dimension(180, 100));
         JLabel valueDescLabel = new JLabel("Value: ");
         fieldControlPanel.add(valueDescLabel);
         valueLabel = new JLabel(NOT_SELECTED);
+        valueLabel.setPreferredSize(new Dimension(120, 10));
         fieldControlPanel.add(valueLabel);
         changeFieldButton = new JButton("Change...");
         changeFieldButton.addActionListener(new ChangeFieldActionListener());
@@ -141,11 +168,23 @@ public class InterpretWindow extends JFrame {
         JPanel methodControlpanel = new JPanel();
         FlowLayout methodControlPanelLayout = new FlowLayout();
         methodControlPanelLayout.setAlignment(FlowLayout.LEFT);
+        methodControlpanel.setPreferredSize(new Dimension(180, 100));
         methodControlpanel.setLayout(methodControlPanelLayout);
         methodControlpanel.add(new JLabel("Parameters:"));
         invokeParamsField = new JTextField();
         invokeParamsField.setPreferredSize(new Dimension(150, 20));
+        invokeParamsField.setDropMode(DropMode.INSERT);
+        invokeParamsField.setDropTarget(new ObjectDropTarget());
         methodControlpanel.add(invokeParamsField);
+        JLabel ex1 = new JLabel("ex1) null          ");
+        JLabel ex2 = new JLabel("ex2) abc,123       ");
+        JLabel ex3 = new JLabel("ex3) =(object name)");
+        ex1.setForeground(Color.darkGray);
+        ex2.setForeground(Color.darkGray);
+        ex3.setForeground(Color.darkGray);
+        methodControlpanel.add(ex1);
+        methodControlpanel.add(ex2);
+        methodControlpanel.add(ex3);
         invokeMethodButton = new JButton("Invoke");
         invokeMethodButton.setEnabled(false);
         invokeMethodButton.addActionListener(new InvokeMethodActionListener());
@@ -162,6 +201,44 @@ public class InterpretWindow extends JFrame {
         setSize(getPreferredSize());
         setLocationRelativeTo(null);
         setVisible(true);
+    }
+
+    private void showArrayArea() {
+        if (showArrayArea)
+            return;
+
+        // Array tree
+        addGrid(new JLabel("Arrays"), 1, 5);
+        arrayRootNode = new DefaultMutableTreeNode("Arrays");
+        arrayTree = new JTree(arrayRootNode);
+        arrayTree.setRootVisible(false);
+        arrayTree.addTreeSelectionListener(new ArrayObjectSelectionListener());
+        arrayTreeModel = (DefaultTreeModel) arrayTree.getModel();
+        addGrid(new JScrollPane(arrayTree), 1, 6);
+
+        // Array cell list
+        addGrid(new JLabel("Cells"), 2, 5);
+        arrayCellListModel = new DefaultListModel<>();
+        arrayCellList = new JList<>();
+        arrayCellList.setModel(arrayCellListModel);
+        arrayCellList
+                .addListSelectionListener(new ArrayCellSelectionListener());
+        addGrid(new JScrollPane(arrayCellList), 2, 6);
+
+        // Array cell control panel
+        JPanel arrayCellControlPanel = new JPanel();
+        FlowLayout arrayCellControlPanelLayout = new FlowLayout();
+        arrayCellControlPanelLayout.setAlignment(FlowLayout.LEFT);
+        arrayCellControlPanel.setPreferredSize(new Dimension(180, 100));
+        arrayCellControlPanel.setLayout(arrayCellControlPanelLayout);
+        insertNewButton = new JButton("Insert new...");
+        insertNewButton.setEnabled(false);
+        insertNewButton.addActionListener(new InsertNewActionListener());
+        arrayCellControlPanel.add(insertNewButton);
+        addGrid(arrayCellControlPanel, 3, 6);
+
+        pack();
+        showArrayArea = true;
     }
 
     public static void main(String[] args) {
@@ -193,24 +270,6 @@ public class InterpretWindow extends JFrame {
         getContentPane().add(comp);
     }
 
-    private class NewObjectActionListener implements ActionListener {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            String value = JOptionPane.showInputDialog(InterpretWindow.this,
-                    "Input class:", "java.awt.Frame");
-            if (value != null) {
-                try {
-                    new InstantiateWindow(InterpretWindow.this,
-                            Class.forName(value));
-                } catch (ClassNotFoundException cnfe) {
-                    JOptionPane.showMessageDialog(InterpretWindow.this,
-                            "ClassNotFoundException", "ERROR",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        }
-    }
-
     /**
      * Add object to this window.
      * 
@@ -233,6 +292,30 @@ public class InterpretWindow extends JFrame {
         setLocationRelativeTo(null);
     }
 
+    void addArray(Class<?> cls, Object instance, String name, int length) {
+        showArrayArea();
+        arrays.add(new ArrayElement(instance, name, length));
+        DefaultMutableTreeNode arrayNode = getArrayClassNode(cls);
+        if (arrayNode == null) {
+            arrayNode = new DefaultMutableTreeNode(cls.getName());
+            arrayRootNode.add(arrayNode);
+        }
+        DefaultMutableTreeNode objectNode = new DefaultMutableTreeNode(name);
+        arrayNode.add(objectNode);
+        arrayTreeModel.reload();
+        expandAll(arrayTree, 0, arrayTree.getRowCount());
+        pack();
+        setLocationRelativeTo(null);
+    }
+
+    void addArrayCell(Object instance, String name, int index) {
+        ArrayElement element = getArrayElement(name);
+        element.setObjectElementAt(index, instance);
+        arrayCellListModel.setElementAt(new ObjectElement(instance, name + "["
+                + index + "]"), index);
+        new ArrayCellSelectionListener().valueChanged(null);
+    }
+
     /**
      * Check duplicates.
      * 
@@ -240,7 +323,7 @@ public class InterpretWindow extends JFrame {
      * @return Exits
      */
     boolean exists(String name) {
-        return getObjectElement(name) != null;
+        return getObjectElement(name) != null || getArrayElement(name) != null;
     }
 
     /**
@@ -251,6 +334,19 @@ public class InterpretWindow extends JFrame {
      */
     private ObjectElement getObjectElement(String name) {
         for (ObjectElement e : objects)
+            if (e.getName().equals(name))
+                return e;
+        return null;
+    }
+
+    /**
+     * Get array object element by name.
+     * 
+     * @param name Name of object
+     * @return Object element
+     */
+    private ArrayElement getArrayElement(String name) {
+        for (ArrayElement e : arrays)
             if (e.getName().equals(name))
                 return e;
         return null;
@@ -300,6 +396,19 @@ public class InterpretWindow extends JFrame {
     }
 
     /**
+     * Get class node from array tree.
+     * 
+     * @param cls Class
+     * @return node
+     */
+    private DefaultMutableTreeNode getArrayClassNode(Class<?> cls) {
+        for (int i = 0; i < arrayRootNode.getChildCount(); i++)
+            if (arrayRootNode.getChildAt(i).toString().equals(cls.getName()))
+                return (DefaultMutableTreeNode) arrayRootNode.getChildAt(i);
+        return null;
+    }
+
+    /**
      * Expand all items of specified tree.
      * 
      * @param tree JTree object
@@ -328,6 +437,24 @@ public class InterpretWindow extends JFrame {
     private void showErrorMessage(String message) {
         JOptionPane.showMessageDialog(this, message, "ERROR",
                 JOptionPane.ERROR_MESSAGE);
+    }
+
+    private class NewObjectActionListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String value = JOptionPane.showInputDialog(InterpretWindow.this,
+                    "Input class:", "java.awt.Frame");
+            if (value != null) {
+                try {
+                    new InstantiateWindow(InterpretWindow.this,
+                            Class.forName(value), null, 0);
+                } catch (ClassNotFoundException cnfe) {
+                    JOptionPane.showMessageDialog(InterpretWindow.this,
+                            "ClassNotFoundException", "ERROR",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
     }
 
     /** Action listener of [Exit] menu item. */
@@ -370,7 +497,7 @@ public class InterpretWindow extends JFrame {
                 ObjectElement element = getObjectElement(selectedNode
                         .toString());
                 if (element == null) {
-                    System.err.println("ObjectElement null!");
+                    showErrorMessage("FATAL: ObjectElement is null!");
                     return;
                 }
                 // Load fields
@@ -389,6 +516,7 @@ public class InterpretWindow extends JFrame {
         }
     }
 
+    /** List selection listener of field list */
     private class FieldSelectionListener implements ListSelectionListener {
 
         @Override
@@ -400,8 +528,11 @@ public class InterpretWindow extends JFrame {
                 changeFieldButton.setEnabled(false);
             } else {
                 try {
-                    Object value = intField.getField()
-                            .get(intField.getObject());
+                    Object value;
+                    if (Modifier.isStatic(intField.getField().getModifiers()))
+                        value = intField.getField().get(null);
+                    else
+                        value = intField.getField().get(intField.getObject());
                     valueLabel.setText(value.toString());
                     valueLabel.setForeground(Color.black);
                     changeFieldButton.setEnabled(true);
@@ -436,22 +567,27 @@ public class InterpretWindow extends JFrame {
                 showErrorMessage("Field not selected.");
                 return;
             }
-            String current;
+
+            // Get field value
+            Object value;
+            Field field = intField.getField();
             try {
-                current = intField.getField().get(intField.getObject())
-                        .toString();
+                if (Modifier.isStatic(field.getModifiers()))
+                    value = field.get(null);
+                else
+                    value = field.get(intField.getObject());
             } catch (IllegalArgumentException e1) {
                 showErrorMessage("IllegalArgumentException");
                 return;
             } catch (IllegalAccessException e1) {
                 showErrorMessage("IllegalAccessException");
                 return;
-            } catch (NullPointerException e1) {
-                current = "";
             }
+
+            // Get new value from input dialog
             while (true) {
                 String newValue = JOptionPane.showInputDialog("Input value:",
-                        current);
+                        value == null ? "(null)" : value);
                 if (newValue == null)
                     return;
                 if (newValue.isEmpty()) {
@@ -465,31 +601,23 @@ public class InterpretWindow extends JFrame {
                     }
                     Class<?> type = intField.getField().getType();
                     if (type.equals(byte.class))
-                        intField.getField().setByte(object,
-                                Byte.parseByte(newValue));
+                        field.setByte(object, Byte.parseByte(newValue));
                     else if (type.equals(short.class))
-                        intField.getField().setShort(object,
-                                Short.parseShort(newValue));
+                        field.setShort(object, Short.parseShort(newValue));
                     else if (type.equals(int.class))
-                        intField.getField().setInt(object,
-                                Integer.parseInt(newValue));
+                        field.setInt(object, Integer.parseInt(newValue));
                     else if (type.equals(long.class))
-                        intField.getField().setLong(object,
-                                Long.parseLong(newValue));
+                        field.setLong(object, Long.parseLong(newValue));
                     else if (type.equals(float.class))
-                        intField.getField().setFloat(object,
-                                Float.parseFloat(newValue));
+                        field.setFloat(object, Float.parseFloat(newValue));
                     else if (type.equals(double.class))
-                        intField.getField().setDouble(object,
-                                Double.parseDouble(newValue));
+                        field.setDouble(object, Double.parseDouble(newValue));
                     else if (type.equals(char.class))
-                        intField.getField().setChar(object,
-                                (char) Integer.parseInt(newValue));
+                        field.setChar(object, (char) Integer.parseInt(newValue));
                     else if (type.equals(boolean.class))
-                        intField.getField().setBoolean(object,
-                                Boolean.parseBoolean(newValue));
+                        field.setBoolean(object, Boolean.parseBoolean(newValue));
                     else
-                        intField.getField().set(object, newValue);
+                        field.set(object, newValue);
                     valueLabel.setText(newValue);
                     pack();
                     break;
@@ -542,6 +670,7 @@ public class InterpretWindow extends JFrame {
             Class<?>[] params = intMethod.getMethod().getParameterTypes();
             Object[] paramData = new Object[params.length];
             for (int i = 0; i < params.length; i++) {
+                // Create input parameter
                 String inputParam;
                 try {
                     inputParam = inputParams.get(i);
@@ -555,59 +684,77 @@ public class InterpretWindow extends JFrame {
                     System.out.println("paramData[" + i + "]=(null)");
                     continue;
                 }
-                // parameter is primitive type
-                if (params[i].isPrimitive()) {
-                    try {
-                        if (params[i].equals(int.class))
-                            paramData[i] = Integer.parseInt(inputParam);
-                        else if (params[i].equals(double.class))
-                            paramData[i] = Double.parseDouble(inputParam);
-                        else if (params[i].equals(float.class))
-                            paramData[i] = Float.parseFloat(inputParam);
-                        else if (params[i].equals(short.class))
-                            paramData[i] = Short.parseShort(inputParam);
-                        else if (params[i].equals(char.class))
-                            paramData[i] = (char) Integer.parseInt(inputParam);
-                        else if (params[i].equals(byte.class))
-                            paramData[i] = Byte.parseByte(inputParam);
-                        else if (params[i].equals(boolean.class))
-                            paramData[i] = Boolean.parseBoolean(inputParam);
-                        else {
-                            showErrorMessage("Unknown type");
+                // Object load
+                if (inputParam.startsWith(OBJECT_PREFIX)) {
+                    String name = inputParam.substring(OBJECT_PREFIX.length());
+                    ObjectElement element = getObjectElement(name);
+                    ArrayElement arrayElement = getArrayElement(name);
+                    if (element == null && arrayElement == null) {
+                        showErrorMessage("Object not found: " + name);
+                        return;
+                    }
+                    if (element != null)
+                        paramData[i] = element.getObject();
+                    if (arrayElement != null)
+                        paramData[i] = arrayElement.getObject();
+                } else {
+                    // parameter is primitive type
+                    if (params[i].isPrimitive()) {
+                        try {
+                            if (params[i].equals(int.class))
+                                paramData[i] = Integer.parseInt(inputParam);
+                            else if (params[i].equals(double.class))
+                                paramData[i] = Double.parseDouble(inputParam);
+                            else if (params[i].equals(float.class))
+                                paramData[i] = Float.parseFloat(inputParam);
+                            else if (params[i].equals(short.class))
+                                paramData[i] = Short.parseShort(inputParam);
+                            else if (params[i].equals(char.class))
+                                paramData[i] = (char) Integer
+                                        .parseInt(inputParam);
+                            else if (params[i].equals(byte.class))
+                                paramData[i] = Byte.parseByte(inputParam);
+                            else if (params[i].equals(boolean.class))
+                                paramData[i] = Boolean.parseBoolean(inputParam);
+                            else {
+                                showErrorMessage("Unknown type");
+                                return;
+                            }
+                            System.out.println("paramData[" + i + "]="
+                                    + paramData[i]);
+                            continue;
+                        } catch (NumberFormatException e1) {
+                            showErrorMessage("NumberFormatException");
                             return;
                         }
-                        System.out.println("paramData[" + i + "]=" + paramData[i]);
-                        continue;                        
-                    } catch (NumberFormatException e1) {
-                        showErrorMessage("NumberFormatException");
-                        return;
+                    } else {
+                        // parameter has string constructor
+                        try {
+                            Object p = params[i].getConstructor(String.class)
+                                    .newInstance(inputParam);
+                            paramData[i] = p;
+                            System.out.println("paramData[" + i + "]=" + p);
+                            continue;
+                        } catch (ReflectiveOperationException e1) {
+                            System.err
+                                    .println("Parameter #"
+                                            + (i + 1)
+                                            + " hasn't string constructor. Inserting null.");
+                        } catch (SecurityException e1) {
+                            showErrorMessage("SecurityException");
+                            return;
+                        }
+                        // insert null
+                        System.out.println("paramData[" + i + "]=(null)");
+                        paramData[i] = null;
                     }
-                } else {
-                    // parameter has string constructor
-                    try {
-                        Object p = params[i].getConstructor(String.class)
-                                .newInstance(inputParam);
-                        paramData[i] = p;
-                        System.out.println("paramData[" + i + "]=" + p);
-                        continue;
-                    } catch (ReflectiveOperationException e1) {
-                        System.err
-                                .println("Parameter #"
-                                        + (i + 1)
-                                        + " hasn't string constructor. Inserting null.");
-                    } catch (SecurityException e1) {
-                        showErrorMessage("SecurityException");
-                        return;
-                    }
-                    // insert null
-                    System.out.println("paramData[" + i + "]=(null)");
-                    paramData[i] = null;
                 }
             }
 
             Object result;
             try {
-                result = intMethod.getMethod().invoke(intMethod.getObject(), paramData);
+                result = intMethod.getMethod().invoke(intMethod.getObject(),
+                        paramData);
             } catch (IllegalAccessException e1) {
                 showErrorMessage("IllegalAccessException");
                 return;
@@ -615,13 +762,199 @@ public class InterpretWindow extends JFrame {
                 showErrorMessage("IllegalArgumentException");
                 return;
             } catch (InvocationTargetException e1) {
-                showErrorMessage("InvocationTargetException");
+                showErrorMessage("Exception cought: "
+                        + System.getProperty("line.separator") + e1.getCause());
                 return;
             }
             if (result == null)
                 result = "(none)";
+            if (intMethod.getMethod().getReturnType().equals(Void.TYPE))
+                result = "(void)";
+            invokeParamsField.setText("");
             JOptionPane.showMessageDialog(InterpretWindow.this, "Result: "
                     + result);
+        }
+    }
+
+    private class ObjectDropTarget extends DropTarget {
+        @Override
+        public void drop(DropTargetDropEvent e) {
+            Transferable t = e.getTransferable();
+            if (t.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                e.acceptDrop(DnDConstants.ACTION_REFERENCE);
+                try {
+                    String s = (String) t
+                            .getTransferData(DataFlavor.stringFlavor);
+                    String text = invokeParamsField.getText();
+                    if (text.length() == 0)
+                        invokeParamsField.setText("=" + s);
+                    else
+                        invokeParamsField.setText(text + ",=" + s);
+                } catch (UnsupportedFlavorException e1) {
+                    showErrorMessage("UnsupportedFlavorException");
+                    return;
+                } catch (IOException e1) {
+                    showErrorMessage("IOException");
+                    return;
+                }
+            }
+        }
+    }
+
+    private class NewArrayActionListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String value = JOptionPane.showInputDialog(InterpretWindow.this,
+                    "Input class:", "java.lang.Integer");
+            if (value != null) {
+                if (value.equals("byte")) {
+                    new CreateArrayWindow(InterpretWindow.this, byte.class);
+                } else if (value.equals("short")) {
+                    new CreateArrayWindow(InterpretWindow.this, short.class);
+                } else if (value.equals("int")) {
+                    new CreateArrayWindow(InterpretWindow.this, int.class);
+                } else if (value.equals("long")) {
+                    new CreateArrayWindow(InterpretWindow.this, long.class);
+                } else if (value.equals("float")) {
+                    new CreateArrayWindow(InterpretWindow.this, float.class);
+                } else if (value.equals("double")) {
+                    new CreateArrayWindow(InterpretWindow.this, double.class);
+                } else if (value.equals("char")) {
+                    new CreateArrayWindow(InterpretWindow.this, char.class);
+                } else if (value.equals("boolean")) {
+                    new CreateArrayWindow(InterpretWindow.this, boolean.class);
+                } else {
+                    try {
+                        new CreateArrayWindow(InterpretWindow.this,
+                                Class.forName(value));
+                    } catch (ClassNotFoundException cnfe) {
+                        JOptionPane.showMessageDialog(InterpretWindow.this,
+                                "ClassNotFoundException", "ERROR",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+
+            }
+        }
+    }
+
+    /** Tree selection listener of array object tree */
+    public class ArrayObjectSelectionListener implements TreeSelectionListener {
+        @Override
+        public void valueChanged(TreeSelectionEvent e) {
+            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) arrayTree
+                    .getLastSelectedPathComponent();
+            // Not choice
+            if (selectedNode == null) {
+                arrayCellListModel.clear();
+                arrayCellList.setEnabled(false);
+            }
+            // Class choice
+            else if (selectedNode.getParent().equals(arrayRootNode)) {
+                arrayCellListModel.clear();
+                arrayCellList.setEnabled(false);
+            } else if (selectedNode.getParent().getParent()
+                    .equals(arrayRootNode)) {
+                ArrayElement element = getArrayElement(selectedNode.toString());
+                if (element == null) {
+                    showErrorMessage("FATAL: ArrayElement is null!");
+                    return;
+                }
+                // Load members
+                arrayCellListModel.clear();
+                for (int i = 0; i < element.length(); i++) {
+                    arrayCellListModel
+                            .addElement(element.getObjectElementAt(i));
+                }
+                arrayCellList.setEnabled(true);
+                pack();
+                setLocationRelativeTo(null);
+            }
+        }
+    }
+
+    /** List selection listener of cell list */
+    private class ArrayCellSelectionListener implements ListSelectionListener {
+
+        @Override
+        public void valueChanged(ListSelectionEvent e) {
+            ObjectElement objectElement = arrayCellList.getSelectedValue();
+            fieldListModel.clear();
+            fieldList.setEnabled(false);
+            changeFieldButton.setEnabled(false);
+            valueLabel.setText(NOT_SELECTED);
+            methodListModel.clear();
+            methodList.setEnabled(false);
+            invokeParamsField.setEnabled(false);
+            invokeMethodButton.setEnabled(false);
+            insertNewButton.setEnabled(false);
+            if (objectElement != null) {
+                insertNewButton.setEnabled(true);
+                if (objectElement.getObject() != null) {
+                    // Load fields
+                    fieldListModel.clear();
+                    for (InterpretField f : getAllFields(objectElement))
+                        fieldListModel.addElement(f);
+                    fieldList.setEnabled(true);
+                    // Load methods
+                    methodListModel.clear();
+                    for (InterpretMethod m : getAllMethods(objectElement))
+                        methodListModel.addElement(m);
+                    methodList.setEnabled(true);
+                    pack();
+                    setLocationRelativeTo(null);
+                }
+            }
+        }
+    }
+
+    private class InsertNewActionListener implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) arrayTree
+                    .getLastSelectedPathComponent();
+            if (selectedNode != null
+                    && selectedNode.getParent().getParent()
+                            .equals(arrayRootNode)) {
+                String name = selectedNode.toString();
+                int index = arrayCellList.getSelectedIndex();
+                System.out.println("" + name + " " + index);
+                String className = selectedNode.getParent().toString();
+                if (className.equals("byte")) {
+                    new InstantiateWindow(InterpretWindow.this, Byte.class,
+                            name, index);
+                } else if (className.equals("short")) {
+                    new InstantiateWindow(InterpretWindow.this, Short.class,
+                            name, index);
+                } else if (className.equals("int")) {
+                    new InstantiateWindow(InterpretWindow.this, Integer.class,
+                            name, index);
+                } else if (className.equals("long")) {
+                    new InstantiateWindow(InterpretWindow.this, Long.class,
+                            name, index);
+                } else if (className.equals("float")) {
+                    new InstantiateWindow(InterpretWindow.this, Float.class,
+                            name, index);
+                } else if (className.equals("double")) {
+                    new InstantiateWindow(InterpretWindow.this, Double.class,
+                            name, index);
+                } else if (className.equals("char")) {
+                    new InstantiateWindow(InterpretWindow.this,
+                            Character.class, name, index);
+                } else if (className.equals("boolean")) {
+                    new InstantiateWindow(InterpretWindow.this, Boolean.class,
+                            name, index);
+                } else {
+                    try {
+                        new InstantiateWindow(InterpretWindow.this,
+                                Class.forName(className), name, index);
+                    } catch (ClassNotFoundException e1) {
+                        showErrorMessage("FATAL: ClassNotFoundException");
+                        return;
+                    }
+                }
+            }
         }
     }
 }

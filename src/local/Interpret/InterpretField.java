@@ -21,7 +21,7 @@ public class InterpretField implements Comparable<InterpretField> {
         return field;
     }
 
-    public String getFillName() {
+    public String getFullName() {
         return field.toString();
     }
 

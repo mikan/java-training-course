@@ -32,7 +32,7 @@ public class InterpretMethod implements Comparable<InterpretMethod> {
         return method;
     }
 
-    public String getFillName() {
+    public String getFullName() {
         return method.toString();
     }
 
