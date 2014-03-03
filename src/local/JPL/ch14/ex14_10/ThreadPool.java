@@ -20,9 +20,10 @@ import java.util.Queue;
  */
 public class ThreadPool {
 
-    // MEMO: https://www.ibm.com/developerworks/jp/java/library/j-jtp0730/
-    private MyThread[] threads;
+    private WorkerThread[] threads;
     private Queue<Runnable> queue;
+    private int queueSize;
+    private boolean started;
 
     /**
      * Constructs ThreadPool.
@@ -35,10 +36,11 @@ public class ThreadPool {
     public ThreadPool(final int queueSize, final int numberOfThreads) {
         if (queueSize < 1 || numberOfThreads < 1)
             throw new IllegalArgumentException();
-        threads = new MyThread[numberOfThreads];
+        this.queueSize = queueSize;
+        threads = new WorkerThread[numberOfThreads];
         queue = new LinkedList<Runnable>();
         for (int i = 0; i < threads.length; i++) {
-            threads[i] = new MyThread();
+            threads[i] = new WorkerThread();
         }
     }
 
@@ -48,13 +50,17 @@ public class ThreadPool {
      * @throws IllegalStateException if threads has been already started.
      */
     public void start() {
+        if (started)
+            throw new IllegalStateException("Already started.");
         for (int i = 0; i < threads.length; i++) {
             try {
+                threads[i] = new WorkerThread();
                 threads[i].start();
             } catch (IllegalThreadStateException e) {
                 throw new IllegalStateException(e);
             }
         }
+        started = true;
     }
 
     /**
@@ -64,14 +70,17 @@ public class ThreadPool {
      */
     public void stop() {
         for (int i = 0; i < threads.length; i++) {
-            if (threads[i].isAlive())
+            if (threads[i].isAlive()) {
+                threads[i].stopRequest();
                 try {
                     threads[i].join();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    System.err.println("InterruptedException on stop()");
                 }
-            else
+            } else {
                 throw new IllegalStateException();
+
+            }
         }
     }
 
@@ -87,29 +96,50 @@ public class ThreadPool {
     public synchronized void dispatch(Runnable runnable) {
         if (runnable == null)
             throw new NullPointerException();
+        if (!started)
+            throw new IllegalStateException("Not statrted.");
         synchronized (queue) {
+            if (queue.size() >= queueSize) {
+                try {
+                    queue.wait();
+                } catch (InterruptedException e) {
+                    System.err.println("InterruptedException on dispatch()");
+                }
+            }
             queue.add(runnable);
-            queue.notify();
+            queue.notifyAll();
         }
     }
 
-    private class MyThread extends Thread {
+    private class WorkerThread extends Thread {
+
+        private boolean stopping;
 
         @Override
         public void run() {
-            Runnable runnable;
-            while (true) {
+            Runnable runnable = null;
+            while (!stopping) {
                 synchronized (queue) {
-                    while (queue.isEmpty()) {
+                    while (!stopping && queue.isEmpty()) {
                         try {
                             queue.wait();
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            System.err.println("InterruptedException on run()");
                         }
-                        runnable = queue.poll();
-                        runnable.run();
                     }
+                    runnable = queue.poll();
+                    if (runnable != null)
+                        queue.notifyAll();
                 }
+                if (runnable != null)
+                    runnable.run();
+            }
+        }
+        
+        private void stopRequest() {
+            stopping = true;
+            synchronized (queue) {
+                queue.notifyAll();
             }
         }
     }
