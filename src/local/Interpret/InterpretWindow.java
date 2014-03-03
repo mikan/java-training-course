@@ -43,6 +43,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
@@ -108,6 +112,22 @@ public class InterpretWindow extends JFrame {
         exitMenuItem.setMnemonic('E');
         exitMenuItem.addActionListener(new ExitActionListener());
         fileMenu.add(exitMenuItem);
+
+        // Menu [View]
+        JMenu viewMenu = new JMenu("View");
+        viewMenu.setMnemonic('V');
+        menuBar.add(viewMenu);
+
+        // Menu [View] -> [Look & Feel]
+        JMenu lfMenu = new JMenu("Look & Feel");
+        lfMenu.setMnemonic('L');
+        viewMenu.add(lfMenu);
+        ActionListener lfActionListener = new LFActionListener();
+        for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+            JMenuItem item = new JMenuItem(info.getName());
+            item.addActionListener(lfActionListener);
+            lfMenu.add(item);
+        }
 
         // Menu [Help]
         JMenu helpMenu = new JMenu("Help");
@@ -176,9 +196,9 @@ public class InterpretWindow extends JFrame {
         invokeParamsField.setDropMode(DropMode.INSERT);
         invokeParamsField.setDropTarget(new ObjectDropTarget());
         methodControlpanel.add(invokeParamsField);
-        JLabel ex1 = new JLabel("ex1) null          ");
-        JLabel ex2 = new JLabel("ex2) abc,123       ");
-        JLabel ex3 = new JLabel("ex3) =(object name)");
+        JLabel ex1 = new JLabel("ex1) null              ");
+        JLabel ex2 = new JLabel("ex2) abc,123           ");
+        JLabel ex3 = new JLabel("ex3) =(object name)    ");
         ex1.setForeground(Color.darkGray);
         ex2.setForeground(Color.darkGray);
         ex3.setForeground(Color.darkGray);
@@ -197,6 +217,22 @@ public class InterpretWindow extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setTitle("INTERPRET");
         setResizable(false);
+
+        // LF
+        for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+            if (info.getName().startsWith("Nimbus")) {
+                try {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    SwingUtilities.updateComponentTreeUI(this);
+                } catch (ClassNotFoundException | InstantiationException
+                        | IllegalAccessException
+                        | UnsupportedLookAndFeelException
+                        | NullPointerException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         pack();
         setSize(getPreferredSize());
         setLocationRelativeTo(null);
@@ -953,6 +989,27 @@ public class InterpretWindow extends JFrame {
                         showErrorMessage("FATAL: ClassNotFoundException");
                         return;
                     }
+                }
+            }
+        }
+    }
+
+    private class LFActionListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if (((JMenuItem) e.getSource()).getText()
+                        .equals(info.getName())) {
+                    try {
+                        UIManager.setLookAndFeel(info.getClassName());
+                    } catch (ClassNotFoundException | InstantiationException
+                            | IllegalAccessException
+                            | UnsupportedLookAndFeelException e1) {
+                        e1.printStackTrace();
+                    }
+                    SwingUtilities.updateComponentTreeUI(InterpretWindow.this);
+                    pack();
+                    break;
                 }
             }
         }
