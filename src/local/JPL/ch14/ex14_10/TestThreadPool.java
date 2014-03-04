@@ -1,8 +1,7 @@
-/*
- * Copyright (C) 2012, 2013 RICOH Co., Ltd. All rights reserved.
- */
 package local.JPL.ch14.ex14_10;
-
+/*
+ * Copyright (C) 2012 - 2014 RICOH Co., Ltd. All rights reserved.
+ */
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
@@ -16,6 +15,8 @@ import org.junit.Test;
 /**
  * This is a Test class for ThreadPool class.
  * This class is written with JUnit 4.
+ * 
+ * @author Yoshiki Shibata
  */
 public class TestThreadPool {
 
@@ -121,6 +122,7 @@ public class TestThreadPool {
 		CounterTask t = new CounterTask();
 		tp.dispatch(t);
 	}
+	
 	@Test
 	public void testSimpleDispatch() {
 		ThreadPool tp = new ThreadPool(1,1);
@@ -223,11 +225,12 @@ public class TestThreadPool {
 				
 		tp.stop();
 	}
-	
 	@Test
 	public void testNumberOfThreads() {
+		
 		final Set<Thread> threads = Collections.synchronizedSet(new HashSet<Thread>());
 		Runnable task = new Runnable() {
+			
 			@Override
 			public void run() {
 				threads.add(Thread.currentThread());
@@ -242,7 +245,10 @@ public class TestThreadPool {
 		final int numberOfThreads = 10;
 		ThreadPool tp = new ThreadPool(10,numberOfThreads);
 		tp.start();
-		for (int i = 0; i < numberOfThreads; i++)
+		
+		// Execute tasks of which number is 3 times of the number of threads so that
+		// we can make sure that a new thread is not created for each task.
+		for (int i = 0; i < numberOfThreads * 3; i++)
 			tp.dispatch(task);
 		
 		// By the specification, stop() will wait for the terminations of all threads.
@@ -260,7 +266,7 @@ public class TestThreadPool {
 			public void run() {
 				threads.add(Thread.currentThread());
 				try {
-					Thread.sleep(1000); // wait for a while
+					Thread.sleep(5); // wait for a while
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 					// Oops! Interrupt never be used to stop the thread pool!
@@ -283,4 +289,5 @@ public class TestThreadPool {
 		for (Thread t: threads)
 			assertFalse(t.isAlive());
 	}
+	
 }
