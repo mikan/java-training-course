@@ -20,19 +20,19 @@ import javax.swing.UnsupportedLookAndFeelException;
 
 @SuppressWarnings("serial")
 public abstract class AbstractWindow extends JFrame {
-	
+
 	private GridBagLayout layout;
 	private int lastAddedRow = 0;
-	
+
 	public AbstractWindow() {
 		layout = new GridBagLayout();
 		getContentPane().setLayout(layout);
-		
+
 		ToolTipManager tip = ToolTipManager.sharedInstance();
 		tip.setInitialDelay(100);
-		//tip.setDismissDelay(500);
+		// tip.setDismissDelay(500);
 	}
-	
+
 	protected void addGrid(JComponent comp) {
 		addGrid(comp, 1, ++lastAddedRow, 1, 1, GridBagConstraints.WEST);
 	}
@@ -49,8 +49,8 @@ public abstract class AbstractWindow extends JFrame {
 		addGrid(comp, x, y, width, height, GridBagConstraints.WEST);
 	}
 
-	protected void addGrid(JComponent comp, int x, int y, int width, int height,
-			int anchor) {
+	protected void addGrid(JComponent comp, int x, int y, int width,
+			int height, int anchor) {
 		GridBagConstraints constraints = new GridBagConstraints();
 		constraints.gridx = x;
 		constraints.gridy = y;
@@ -61,12 +61,18 @@ public abstract class AbstractWindow extends JFrame {
 		layout.setConstraints(comp, constraints);
 		getContentPane().add(comp);
 	}
-	
+
 	protected void showErrorMessage(String message) {
 		JOptionPane.showMessageDialog(this, message, "ERROR",
 				JOptionPane.ERROR_MESSAGE);
 	}
 	
+	protected void showInformationMessage(String message, String title) {
+		JOptionPane.showMessageDialog(this,
+				message, title,
+				JOptionPane.INFORMATION_MESSAGE);
+	}
+
 	/** Set look & feel for Nimbus */
 	protected void setLF() {
 		for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
@@ -84,7 +90,7 @@ public abstract class AbstractWindow extends JFrame {
 			}
 		}
 	}
-	
+
 	protected class LFActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {

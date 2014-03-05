@@ -59,7 +59,7 @@ public class CreatePrimitiveWindow extends AbstractWindow {
 		setLocationRelativeTo(null);
 		setVisible(true);
 	}
-	
+
 	/** Add object with input data. */
 	private void addObject() {
 		String value = valueField.getText();
@@ -72,8 +72,7 @@ public class CreatePrimitiveWindow extends AbstractWindow {
 			showErrorMessage("Please input name");
 			return;
 		}
-		if (name.startsWith("=") || name.contains("[")
-				|| name.contains("]")) {
+		if (name.startsWith("=") || name.contains("[") || name.contains("]")) {
 			showErrorMessage("Name contains illegal character.");
 			return;
 		}
@@ -84,39 +83,37 @@ public class CreatePrimitiveWindow extends AbstractWindow {
 		try {
 			if (cls.equals(byte.class)) {
 				interpret.addObject(cls,
-						Byte.class.getConstructor(String.class)
+						(byte) Byte.class.getConstructor(String.class)
 								.newInstance(value), name);
 			} else if (cls.equals(short.class)) {
 				interpret.addObject(cls,
-						Short.class.getConstructor(String.class)
+						(short) Short.class.getConstructor(String.class)
 								.newInstance(value), name);
 			} else if (cls.equals(int.class)) {
 				interpret.addObject(cls,
-						Integer.class.getConstructor(String.class)
+						(int) Integer.class.getConstructor(String.class)
 								.newInstance(value), name);
 			} else if (cls.equals(long.class)) {
 				interpret.addObject(cls,
-						Long.class.getConstructor(String.class)
+						(long) Long.class.getConstructor(String.class)
 								.newInstance(value), name);
 			} else if (cls.equals(float.class)) {
 				interpret.addObject(cls,
-						Float.class.getConstructor(String.class)
+						(float) Float.class.getConstructor(String.class)
 								.newInstance(value), name);
 			} else if (cls.equals(double.class)) {
 				interpret.addObject(cls,
-						Double.class.getConstructor(String.class)
+						(double) Double.class.getConstructor(String.class)
 								.newInstance(value), name);
 			} else if (cls.equals(char.class)) {
-				interpret.addObject(cls, Character.class
-						.getConstructor(String.class)
-						.newInstance(value), name);
-			} else if (cls.equals(boolean.class)) {
 				interpret.addObject(cls,
-						Boolean.class.getConstructor(String.class)
+						(char) Character.class.getConstructor(String.class)
 								.newInstance(value), name);
+			} else if (cls.equals(boolean.class)) {
+				interpret.addObject(cls, (boolean) Boolean.class
+						.getConstructor(String.class).newInstance(value), name);
 			} else {
-				showErrorMessage("FATAL: Undefined type: "
-						+ cls.getName());
+				showErrorMessage("FATAL: Undefined type: " + cls.getName());
 				return;
 			}
 			setVisible(false);
@@ -131,8 +128,7 @@ public class CreatePrimitiveWindow extends AbstractWindow {
 			return;
 		} catch (InvocationTargetException e1) {
 			showErrorMessage("Exception caught:"
-					+ System.getProperty("line.separator")
-					+ e1.getCause());
+					+ System.getProperty("line.separator") + e1.getCause());
 			return;
 		} catch (NoSuchMethodException e1) {
 			showErrorMessage("NoSuchMethodException");
@@ -165,7 +161,7 @@ public class CreatePrimitiveWindow extends AbstractWindow {
 					showErrorMessage("Please input value");
 					return;
 				} else {
-					nameField.requestFocus();					
+					nameField.requestFocus();
 				}
 			} else if (e.getSource().equals(nameField)) {
 				addObject();

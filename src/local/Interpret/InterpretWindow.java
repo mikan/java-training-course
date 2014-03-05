@@ -17,15 +17,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.StringTokenizer;
 
 import javax.swing.DefaultListModel;
@@ -60,7 +54,8 @@ public class InterpretWindow extends AbstractWindow {
 	private static final String DEFAULT_ARRAY_TYPE = "java.lang.String";
 	private static final String NOT_SELECTED = "(not selected)";
 	private static final String TOOLTIP_DRAGGABLE = "Each element is draggable to the parameter(s).";
-	private List<ObjectElement> objects;
+	private static final String TOOLTIP_ANNOTATION = "Show annotations if available.";
+	private List<InterpretObject> objects;
 	private final JTree objectTree;
 	private final DefaultTreeModel objectTreeModel;
 	private final DefaultMutableTreeNode objectRootNode;
@@ -71,21 +66,24 @@ public class InterpretWindow extends AbstractWindow {
 	private final JLabel valueLabel;
 	private final JButton changeFieldButton;
 	private final JButton invokeMethodButton;
+	private final JButton showFieldAnnotationButton;
+	private final JButton showMethodAnnotationButton;
 	private final JTextField invokeParamsField;
 	private boolean showArrayArea = false;
 	private List<ArrayElement> arrays;
 	private JTree arrayTree;
 	private DefaultTreeModel arrayTreeModel;
 	private DefaultMutableTreeNode arrayRootNode;
-	private JList<ObjectElement> arrayCellList;
-	private DefaultListModel<ObjectElement> arrayCellListModel;
+	private JList<InterpretObject> arrayCellList;
+	private DefaultListModel<InterpretObject> arrayCellListModel;
 	private JButton insertNewButton;
 	private JMenuItem arrayMenuItem;
 	private Dimension treePreferredSize;
 
+	/** Create and show the interpret window. */
 	public InterpretWindow() {
 
-		objects = new ArrayList<ObjectElement>();
+		objects = new ArrayList<InterpretObject>();
 		arrays = new ArrayList<ArrayElement>();
 		treePreferredSize = new Dimension(100, 100);
 
@@ -161,8 +159,7 @@ public class InterpretWindow extends AbstractWindow {
 		objectTree.setRootVisible(false);
 		objectTree.setSize(300, 300);
 		objectTree.setDragEnabled(true);
-		objectTree
-				.setToolTipText(TOOLTIP_DRAGGABLE);
+		objectTree.setToolTipText(TOOLTIP_DRAGGABLE);
 		objectTreeModel = (DefaultTreeModel) objectTree.getModel();
 		addGrid(new JLabel("Objects           "), 1, 1);
 		addGrid(new JScrollPane(objectTree), 1, 2, 1, 3);
@@ -198,6 +195,12 @@ public class InterpretWindow extends AbstractWindow {
 		changeFieldButton.addActionListener(new ChangeFieldActionListener());
 		changeFieldButton.setEnabled(false);
 		fieldControlPanel.add(changeFieldButton);
+		showFieldAnnotationButton = new JButton("Show annotations...");
+		showFieldAnnotationButton
+				.addActionListener(new ShowAnnotationsActionListener());
+		showFieldAnnotationButton.setEnabled(false);
+		showFieldAnnotationButton.setToolTipText(TOOLTIP_ANNOTATION);
+		fieldControlPanel.add(showFieldAnnotationButton);
 		addGrid(fieldControlPanel, 3, 2);
 
 		// Method control panel
@@ -228,6 +231,12 @@ public class InterpretWindow extends AbstractWindow {
 		invokeMethodButton.setEnabled(false);
 		invokeMethodButton.addActionListener(new InvokeMethodActionListener());
 		methodControlpanel.add(invokeMethodButton);
+		showMethodAnnotationButton = new JButton("Show annotations...");
+		showMethodAnnotationButton
+				.addActionListener(new ShowAnnotationsActionListener());
+		showMethodAnnotationButton.setEnabled(false);
+		showMethodAnnotationButton.setToolTipText(TOOLTIP_ANNOTATION);
+		methodControlpanel.add(showMethodAnnotationButton);
 		addGrid(methodControlpanel, 3, 4);
 
 		// Window
@@ -243,6 +252,7 @@ public class InterpretWindow extends AbstractWindow {
 		setVisible(true);
 	}
 
+	/** Create and show array area. */
 	private void showArrayArea() {
 		if (showArrayArea)
 			return;
@@ -298,7 +308,7 @@ public class InterpretWindow extends AbstractWindow {
 	 * @param name Name of object
 	 */
 	void addObject(Class<?> cls, Object instance, String name) {
-		objects.add(new ObjectElement(instance, name));
+		objects.add(new InterpretObject(instance, name));
 		DefaultMutableTreeNode classNode = getClassNode(cls);
 		if (classNode == null) {
 			classNode = new DefaultMutableTreeNode(cls.getName());
@@ -312,6 +322,14 @@ public class InterpretWindow extends AbstractWindow {
 		setLocationRelativeTo(null);
 	}
 
+	/**
+	 * Add array object to this window.
+	 * 
+	 * @param cls Class
+	 * @param instance Instance of specified class
+	 * @param name Name of array
+	 * @param length
+	 */
 	void addArray(Class<?> cls, Object instance, String name, int length) {
 		showArrayArea();
 		arrays.add(new ArrayElement(instance, name, length));
@@ -328,11 +346,18 @@ public class InterpretWindow extends AbstractWindow {
 		setLocationRelativeTo(null);
 	}
 
+	/**
+	 * Add cell object to array area of this window.
+	 * 
+	 * @param instance Instance
+	 * @param name Name Name of array
+	 * @param index Index of array
+	 */
 	void addArrayCell(Object instance, String name, int index) {
 		ArrayElement element = getArrayElement(name);
 		element.setObjectElementAt(index, instance);
-		arrayCellListModel.setElementAt(new ObjectElement(instance, name + "["
-				+ index + "]"), index);
+		arrayCellListModel.setElementAt(new InterpretObject(instance, name
+				+ "[" + index + "]"), index);
 		new ArrayCellSelectionListener().valueChanged(null);
 	}
 
@@ -352,8 +377,8 @@ public class InterpretWindow extends AbstractWindow {
 	 * @param name Name of object
 	 * @return Object element
 	 */
-	ObjectElement getObjectElement(String name) {
-		for (ObjectElement e : objects)
+	InterpretObject getObjectElement(String name) {
+		for (InterpretObject e : objects)
 			if (e.getName().equals(name))
 				return e;
 		return null;
@@ -370,36 +395,6 @@ public class InterpretWindow extends AbstractWindow {
 			if (e.getName().equals(name))
 				return e;
 		return null;
-	}
-
-	private List<InterpretField> getAllFields(ObjectElement element) {
-		Set<InterpretField> fieldSet = new HashSet<>();
-		for (Field f : element.getObject().getClass().getFields()) {
-			f.setAccessible(true);
-			fieldSet.add(new InterpretField(f, element));
-		}
-		for (Field f : element.getObject().getClass().getDeclaredFields()) {
-			f.setAccessible(true);
-			fieldSet.add(new InterpretField(f, element));
-		}
-		List<InterpretField> fieldList = new ArrayList<>(fieldSet);
-		Collections.sort(fieldList);
-		return fieldList;
-	}
-
-	private List<InterpretMethod> getAllMethods(ObjectElement element) {
-		Set<InterpretMethod> methodSet = new HashSet<>();
-		for (Method m : element.getObject().getClass().getMethods()) {
-			m.setAccessible(true);
-			methodSet.add(new InterpretMethod(m, element));
-		}
-		for (Method m : element.getObject().getClass().getDeclaredMethods()) {
-			m.setAccessible(true);
-			methodSet.add(new InterpretMethod(m, element));
-		}
-		List<InterpretMethod> methodList = new ArrayList<>(methodSet);
-		Collections.sort(methodList);
-		return methodList;
 	}
 
 	/**
@@ -442,28 +437,34 @@ public class InterpretWindow extends AbstractWindow {
 			expandAll(tree, rowCount, tree.getRowCount());
 	}
 
-	private List<String> getParameters() {
-		if (invokeParamsField.getText() == null)
-			return null;
+	/**
+	 * Get string list of parameters from text field.
+	 * 
+	 * @param Text field
+	 * @return List of parameters, or empty list if text field is empty.
+	 */
+	private List<String> getParameters(JTextField textField) {
 		List<String> list = new ArrayList<>();
-		StringTokenizer token = new StringTokenizer(
-				invokeParamsField.getText(), ",");
+		if (textField.getText() == null)
+			return list;
+		StringTokenizer token = new StringTokenizer(textField.getText(), ",");
 		while (token.hasMoreTokens()) {
 			list.add(token.nextToken());
 		}
 		return list;
 	}
 
+	/** Invoke selected method. */
 	private void invoke() {
-		InterpretMethod intMethod = methodList.getSelectedValue();
-		if (intMethod == null) {
+		InterpretMethod method = methodList.getSelectedValue();
+		if (method == null) {
 			showErrorMessage("Method not selected.");
 			return;
 		}
 
 		// Load parameters
-		List<String> inputParams = getParameters();
-		Class<?>[] params = intMethod.getMethod().getParameterTypes();
+		List<String> inputParams = getParameters(invokeParamsField);
+		Class<?>[] params = method.getParameterTypes();
 		Object[] paramData = new Object[params.length];
 		for (int i = 0; i < params.length; i++) {
 			// Create input parameter
@@ -500,7 +501,7 @@ public class InterpretWindow extends AbstractWindow {
 						return;
 					}
 				} else {
-					ObjectElement element = getObjectElement(name);
+					InterpretObject element = getObjectElement(name);
 					ArrayElement arrayElement = getArrayElement(name);
 					if (element == null && arrayElement == null) {
 						showErrorMessage("Object not found: " + name);
@@ -566,8 +567,7 @@ public class InterpretWindow extends AbstractWindow {
 
 		Object result;
 		try {
-			result = intMethod.getMethod().invoke(intMethod.getObject(),
-					paramData);
+			result = method.invoke(paramData);
 		} catch (IllegalAccessException e1) {
 			showErrorMessage("IllegalAccessException");
 			return;
@@ -577,16 +577,29 @@ public class InterpretWindow extends AbstractWindow {
 		} catch (InvocationTargetException e1) {
 			showErrorMessage("Exception cought: " + BR + e1.getCause());
 			return;
+		} catch (OutOfMemoryError e1) {
+			showErrorMessage("OutOfMemoryError: " + e1.getMessage());
+			return;
+		} catch (VirtualMachineError e1) {
+			showErrorMessage("VirtualMachineError: " + e1.getMessage());
+			return;
+		} catch (Error e1) {
+			showErrorMessage("Error: " + e1.getMessage());
+			return;
+		} catch (RuntimeException e1) {
+			showErrorMessage("RuntimeException: " + e1.getMessage());
+			return;
 		}
 		if (result == null)
 			result = "(none)";
-		if (intMethod.getMethod().getReturnType().equals(Void.TYPE))
+		if (method.isReturnVoid())
 			result = "(void)";
 		invokeParamsField.setText("");
 		JOptionPane
 				.showMessageDialog(InterpretWindow.this, "Result: " + result);
 	}
 
+	/** Action listener of [New object...] menu item. */
 	private class NewObjectActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
@@ -645,7 +658,7 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
-	/** Tree selection listener of object tree */
+	/** Tree selection listener of object tree. */
 	private class ObjectSelectionListener implements TreeSelectionListener {
 		@Override
 		public void valueChanged(TreeSelectionEvent e) {
@@ -666,7 +679,7 @@ public class InterpretWindow extends AbstractWindow {
 				methodList.setEnabled(false);
 			} else if (selectedNode.getParent().getParent()
 					.equals(objectRootNode)) {
-				ObjectElement element = getObjectElement(selectedNode
+				InterpretObject element = getObjectElement(selectedNode
 						.toString());
 				if (element == null) {
 					showErrorMessage("FATAL: ObjectElement is null!");
@@ -674,12 +687,12 @@ public class InterpretWindow extends AbstractWindow {
 				}
 				// Load fields
 				fieldListModel.clear();
-				for (InterpretField f : getAllFields(element))
+				for (InterpretField f : element.getFields())
 					fieldListModel.addElement(f);
 				fieldList.setEnabled(true);
 				// Load methods
 				methodListModel.clear();
-				for (InterpretMethod m : getAllMethods(element))
+				for (InterpretMethod m : element.getMethods())
 					methodListModel.addElement(m);
 				methodList.setEnabled(true);
 				pack();
@@ -688,7 +701,7 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
-	/** Mouse adapter (mouse listener) of object tree */
+	/** Mouse adapter (mouse listener) of object tree. */
 	private class ObjectMouseAdapter extends MouseAdapter {
 		@Override
 		public void mouseClicked(MouseEvent arg0) {
@@ -696,23 +709,20 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
-	/** List selection listener of field list */
+	/** List selection listener of list of fields. */
 	private class FieldSelectionListener implements ListSelectionListener {
 
 		@Override
 		public void valueChanged(ListSelectionEvent e) {
-			InterpretField intField = fieldList.getSelectedValue();
-			if (intField == null) {
+			InterpretField field = fieldList.getSelectedValue();
+			if (field == null) {
 				valueLabel.setText(NOT_SELECTED);
 				valueLabel.setForeground(Color.black);
 				changeFieldButton.setEnabled(false);
+				showFieldAnnotationButton.setEnabled(false);
 			} else {
 				try {
-					Object value;
-					if (Modifier.isStatic(intField.getField().getModifiers()))
-						value = intField.getField().get(null);
-					else
-						value = intField.getField().get(intField.getObject());
+					Object value = field.getData();
 					valueLabel.setText(value.toString());
 					valueLabel.setForeground(Color.black);
 					changeFieldButton.setEnabled(true);
@@ -733,34 +743,34 @@ public class InterpretWindow extends AbstractWindow {
 					valueLabel.setForeground(Color.red);
 					changeFieldButton.setEnabled(false);
 				}
+				showFieldAnnotationButton.setEnabled(field.hasAnnotation());
 				pack();
 			}
 		}
 	}
 
-	/** Action listener of [Change...] button */
+	/** Action listener of [Change...] button. */
 	private class ChangeFieldActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
-			InterpretField intField = fieldList.getSelectedValue();
-			if (intField == null) {
+			InterpretField field = fieldList.getSelectedValue();
+			if (field == null) {
 				showErrorMessage("Field not selected.");
 				return;
 			}
 
 			// Get field value
 			Object value;
-			Field field = intField.getField();
 			try {
-				if (Modifier.isStatic(field.getModifiers()))
-					value = field.get(null);
-				else
-					value = field.get(intField.getObject());
+				value = field.getData();
 			} catch (IllegalArgumentException e1) {
 				showErrorMessage("IllegalArgumentException");
 				return;
 			} catch (IllegalAccessException e1) {
 				showErrorMessage("IllegalAccessException");
+				return;
+			} catch (ExceptionInInitializerError e1) {
+				showErrorMessage("ExceptionInInitializerError");
 				return;
 			}
 
@@ -775,30 +785,8 @@ public class InterpretWindow extends AbstractWindow {
 					continue;
 				}
 				try {
-					Object object = intField.getObject();
-					if (Modifier.isStatic(intField.getField().getModifiers())) {
-						object = null;
-					}
-					Class<?> type = intField.getField().getType();
-					if (type.equals(byte.class))
-						field.setByte(object, Byte.parseByte(newValue));
-					else if (type.equals(short.class))
-						field.setShort(object, Short.parseShort(newValue));
-					else if (type.equals(int.class))
-						field.setInt(object, Integer.parseInt(newValue));
-					else if (type.equals(long.class))
-						field.setLong(object, Long.parseLong(newValue));
-					else if (type.equals(float.class))
-						field.setFloat(object, Float.parseFloat(newValue));
-					else if (type.equals(double.class))
-						field.setDouble(object, Double.parseDouble(newValue));
-					else if (type.equals(char.class))
-						field.setChar(object, (char) Integer.parseInt(newValue));
-					else if (type.equals(boolean.class))
-						field.setBoolean(object, Boolean.parseBoolean(newValue));
-					else
-						field.set(object, newValue);
-					valueLabel.setText(newValue);
+					field.setData(newValue);
+					valueLabel.setText(field.getData().toString());
 					pack();
 					break;
 				} catch (NumberFormatException e1) {
@@ -814,28 +802,47 @@ public class InterpretWindow extends AbstractWindow {
 				} catch (SecurityException e1) {
 					showErrorMessage("SecurityException");
 					break;
+				} catch (ExceptionInInitializerError e1) {
+					showErrorMessage("ExceptionInInitializerError");
+					return;
+				} catch (OutOfMemoryError e1) {
+					showErrorMessage("OutOfMemoryError: " + e1.getMessage());
+					return;
+				} catch (VirtualMachineError e1) {
+					showErrorMessage("VirtualMachineError: " + e1.getMessage());
+					return;
+				} catch (Error e1) {
+					showErrorMessage("Error: " + e1.getMessage());
+					return;
+				} catch (RuntimeException e1) {
+					showErrorMessage("RuntimeException: " + e1.getMessage());
+					return;
 				}
 			}
 		}
 	}
 
+	/** Selection listener of list of methods. */
 	private class MethodSelectionListener implements ListSelectionListener {
 		@Override
 		public void valueChanged(ListSelectionEvent e) {
-			InterpretMethod intMethod = methodList.getSelectedValue();
-			if (intMethod == null) {
+			InterpretMethod method = methodList.getSelectedValue();
+			if (method == null) {
 				invokeMethodButton.setEnabled(false);
-			} else if (intMethod.getMethod().getParameterTypes().length == 0) {
+				showMethodAnnotationButton.setEnabled(false);
+			} else if (method.getParameterTypes().length == 0) {
 				invokeMethodButton.setEnabled(true);
 				invokeParamsField.setEnabled(false);
+				showMethodAnnotationButton.setEnabled(method.hasAnnotation());
 			} else {
 				invokeMethodButton.setEnabled(true);
 				invokeParamsField.setEnabled(true);
+				showMethodAnnotationButton.setEnabled(method.hasAnnotation());
 			}
 		}
 	}
 
-	/** Action listener of [Invoke] button */
+	/** Action listener of [Invoke] button. */
 	private class InvokeMethodActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
@@ -843,6 +850,7 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
+	/** Action listener of [New array...] menu item. */
 	private class NewArrayActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
@@ -880,7 +888,7 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
-	/** Tree selection listener of array object tree */
+	/** Tree selection listener of array object tree. */
 	private class ArrayObjectSelectionListener implements TreeSelectionListener {
 		@Override
 		public void valueChanged(TreeSelectionEvent e) {
@@ -915,7 +923,7 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
-	/** Mouse adapter (mouse listener) of array tree */
+	/** Mouse adapter (mouse listener) of array tree. */
 	private class ArrayMouseAdapter extends MouseAdapter {
 		@Override
 		public void mouseClicked(MouseEvent arg0) {
@@ -923,12 +931,12 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
-	/** List selection listener of cell list */
+	/** List selection listener of list of cells. */
 	private class ArrayCellSelectionListener implements ListSelectionListener {
 
 		@Override
 		public void valueChanged(ListSelectionEvent e) {
-			ObjectElement objectElement = arrayCellList.getSelectedValue();
+			InterpretObject element = arrayCellList.getSelectedValue();
 			fieldListModel.clear();
 			fieldList.setEnabled(false);
 			changeFieldButton.setEnabled(false);
@@ -938,17 +946,17 @@ public class InterpretWindow extends AbstractWindow {
 			invokeParamsField.setEnabled(false);
 			invokeMethodButton.setEnabled(false);
 			insertNewButton.setEnabled(false);
-			if (objectElement != null) {
+			if (element != null) {
 				insertNewButton.setEnabled(true);
-				if (objectElement.getObject() != null) {
+				if (element.getObject() != null) {
 					// Load fields
 					fieldListModel.clear();
-					for (InterpretField f : getAllFields(objectElement))
+					for (InterpretField f : element.getFields())
 						fieldListModel.addElement(f);
 					fieldList.setEnabled(true);
 					// Load methods
 					methodListModel.clear();
-					for (InterpretMethod m : getAllMethods(objectElement))
+					for (InterpretMethod m : element.getMethods())
 						methodListModel.addElement(m);
 					methodList.setEnabled(true);
 					pack();
@@ -958,6 +966,7 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
+	/** Action listener of [Insert new...] button. */
 	private class InsertNewActionListener implements ActionListener {
 
 		@Override
@@ -1008,6 +1017,42 @@ public class InterpretWindow extends AbstractWindow {
 		}
 	}
 
+	/** Action listener of [Show annotation...] buttons */
+	private class ShowAnnotationsActionListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			StringBuilder builder = new StringBuilder();
+			if (e.getSource().equals(showFieldAnnotationButton)) {
+				InterpretField field = fieldList.getSelectedValue();
+				if (field == null) {
+					showErrorMessage("Field not selected.");
+					return;
+				}
+				if (!field.hasAnnotation()) {
+					showErrorMessage("This field hasn't annotation.");
+					return;
+				}
+				for (String s : field.getAnnotations())
+					builder.append(s + BR);
+				showInformationMessage(builder.toString(), field.getName());
+			} else if (e.getSource().equals(showMethodAnnotationButton)) {
+				InterpretMethod method = methodList.getSelectedValue();
+				if (method == null) {
+					showErrorMessage("Method not selected.");
+					return;
+				}
+				if (!method.hasAnnotation()) {
+					showErrorMessage("This method hasn't annotation.");
+					return;
+				}
+				for (String s : method.getAnnotations())
+					builder.append(s + BR);
+				showInformationMessage(builder.toString(), method.getName());
+			}
+		}
+	}
+
+	/** Drop target of parameter(s) text field. */
 	private class ObjectDropTarget extends DropTarget {
 		@Override
 		public void drop(DropTargetDropEvent e) {
@@ -1037,9 +1082,8 @@ public class InterpretWindow extends AbstractWindow {
 	private class TextFieldActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
-			if (e.getSource().equals(invokeParamsField)) {
+			if (e.getSource().equals(invokeParamsField))
 				invoke();
-			}
 		}
 	}
 }

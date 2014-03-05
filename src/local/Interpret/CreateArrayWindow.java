@@ -129,6 +129,18 @@ public class CreateArrayWindow extends AbstractWindow {
 		} catch (NegativeArraySizeException e1) {
 			showErrorMessage("NegativeArraySizeException");
 			return;
+		} catch (OutOfMemoryError e1) {
+			showErrorMessage("OutOfMemoryError: " + e1.getMessage());
+			return;
+		} catch (VirtualMachineError e1) {
+			showErrorMessage("VirtualMachineError: " + e1.getMessage());
+			return;
+		} catch (Error e1) {
+			showErrorMessage("Error: " + e1.getMessage());
+			return;
+		} catch (RuntimeException e1) {
+			showErrorMessage("RuntimeException: " + e1.getMessage());
+			return;
 		}
 	}
 

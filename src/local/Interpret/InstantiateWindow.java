@@ -80,6 +80,7 @@ public class InstantiateWindow extends AbstractWindow {
 		paramField = new JTextField("");
 		if (!cls.isPrimitive())
 			paramField.setEnabled(false);
+		paramField.addActionListener(new TextFieldActionListener());
 		paramField.setDropMode(DropMode.INSERT);
 		paramField.setDropTarget(new ObjectDropTarget());
 		paramField
@@ -225,7 +226,7 @@ public class InstantiateWindow extends AbstractWindow {
 							return;
 						}
 					} else {
-						ObjectElement element = interpret
+						InterpretObject element = interpret
 								.getObjectElement(escaped);
 						ArrayElement arrayElement = interpret
 								.getArrayElement(escaped);
@@ -313,6 +314,18 @@ public class InstantiateWindow extends AbstractWindow {
 				showErrorMessage("Exception caught:"
 						+ System.getProperty("line.separator") + e1.getCause());
 				return;
+			} catch (OutOfMemoryError e1) {
+				showErrorMessage("OutOfMemoryError: " + e1.getMessage());
+				return;
+			} catch (VirtualMachineError e1) {
+				showErrorMessage("VirtualMachineError: " + e1.getMessage());
+				return;
+			} catch (Error e1) {
+				showErrorMessage("Error: " + e1.getMessage());
+				return;
+			} catch (RuntimeException e1) {
+				showErrorMessage("RuntimeException: " + e1.getMessage());
+				return;
 			}
 		}
 	}
@@ -339,7 +352,7 @@ public class InstantiateWindow extends AbstractWindow {
 				if (selected != null) {
 					Class<?>[] params = selected.getParameterTypes();
 					if (params == null || params.length == 0) {
-						// paramField.setEnabled(false);
+						paramField.setEnabled(false);
 					} else {
 						paramField.setEnabled(true);
 					}
@@ -378,7 +391,12 @@ public class InstantiateWindow extends AbstractWindow {
 	private class TextFieldActionListener implements ActionListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
-			if (e.getSource().equals(nameField)) {
+			if (e.getSource().equals(paramField)) {
+				if (nameField.isEnabled())
+					nameField.requestFocus();
+				else
+					addObject();
+			} else if (e.getSource().equals(nameField)) {
 				addObject();
 			}
 		}
