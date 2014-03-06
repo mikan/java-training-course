@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Set;
 
 public class InterpretObject {
-	private final Object object;
-	private final String name;
+	protected final Object object;
+	protected final String name;
 
 	public InterpretObject(Object object, String name) {
 		this.object = object;
