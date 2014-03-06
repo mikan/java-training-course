@@ -70,7 +70,7 @@ public class InterpretWindow extends AbstractWindow {
 	private final JButton showMethodAnnotationButton;
 	private final JTextField invokeParamsField;
 	private boolean showArrayArea = false;
-	private List<ArrayElement> arrays;
+	private List<InterpretArray> arrays;
 	private JTree arrayTree;
 	private DefaultTreeModel arrayTreeModel;
 	private DefaultMutableTreeNode arrayRootNode;
@@ -79,12 +79,13 @@ public class InterpretWindow extends AbstractWindow {
 	private JButton insertNewButton;
 	private JMenuItem arrayMenuItem;
 	private Dimension treePreferredSize;
+	private JLabel cellIsNullLabel;
 
 	/** Create and show the interpret window. */
 	public InterpretWindow() {
 
 		objects = new ArrayList<InterpretObject>();
-		arrays = new ArrayList<ArrayElement>();
+		arrays = new ArrayList<InterpretArray>();
 		treePreferredSize = new Dimension(100, 100);
 
 		// Menu
@@ -289,12 +290,14 @@ public class InterpretWindow extends AbstractWindow {
 		arrayCellControlPanelLayout.setAlignment(FlowLayout.LEFT);
 		arrayCellControlPanel.setPreferredSize(new Dimension(180, 100));
 		arrayCellControlPanel.setLayout(arrayCellControlPanelLayout);
+		cellIsNullLabel = new JLabel("");
+        cellIsNullLabel.setForeground(Color.red);
+        arrayCellControlPanel.add(cellIsNullLabel);
+        addGrid(arrayCellControlPanel, 3, 6);
 		insertNewButton = new JButton("Insert new...");
 		insertNewButton.setEnabled(false);
 		insertNewButton.addActionListener(new InsertNewActionListener());
 		arrayCellControlPanel.add(insertNewButton);
-		addGrid(arrayCellControlPanel, 3, 6);
-
 		pack();
 		arrayMenuItem.setEnabled(false);
 		showArrayArea = true;
@@ -332,7 +335,7 @@ public class InterpretWindow extends AbstractWindow {
 	 */
 	void addArray(Class<?> cls, Object instance, String name, int length) {
 		showArrayArea();
-		arrays.add(new ArrayElement(instance, name, length));
+		arrays.add(new InterpretArray(instance, name, length));
 		DefaultMutableTreeNode arrayNode = getArrayClassNode(cls);
 		if (arrayNode == null) {
 			arrayNode = new DefaultMutableTreeNode(cls.getName());
@@ -354,7 +357,7 @@ public class InterpretWindow extends AbstractWindow {
 	 * @param index Index of array
 	 */
 	void addArrayCell(Object instance, String name, int index) {
-		ArrayElement element = getArrayElement(name);
+		InterpretArray element = getArrayElement(name);
 		element.setObjectElementAt(index, instance);
 		arrayCellListModel.setElementAt(new InterpretObject(instance, name
 				+ "[" + index + "]"), index);
@@ -390,8 +393,8 @@ public class InterpretWindow extends AbstractWindow {
 	 * @param name Name of object
 	 * @return Object element
 	 */
-	ArrayElement getArrayElement(String name) {
-		for (ArrayElement e : arrays)
+	InterpretArray getArrayElement(String name) {
+		for (InterpretArray e : arrays)
 			if (e.getName().equals(name))
 				return e;
 		return null;
@@ -488,7 +491,7 @@ public class InterpretWindow extends AbstractWindow {
 					String arrayName = name.substring(0, name.indexOf("["));
 					String indexStr = name.substring(name.indexOf("[") + 1,
 							name.lastIndexOf("]"));
-					ArrayElement arrayElement = getArrayElement(arrayName);
+					InterpretArray arrayElement = getArrayElement(arrayName);
 					if (arrayElement == null) {
 						showErrorMessage("Array not found: " + name);
 						return;
@@ -502,7 +505,7 @@ public class InterpretWindow extends AbstractWindow {
 					}
 				} else {
 					InterpretObject element = getObjectElement(name);
-					ArrayElement arrayElement = getArrayElement(name);
+					InterpretArray arrayElement = getArrayElement(name);
 					if (element == null && arrayElement == null) {
 						showErrorMessage("Object not found: " + name);
 						return;
@@ -905,11 +908,22 @@ public class InterpretWindow extends AbstractWindow {
 				arrayCellList.setEnabled(false);
 			} else if (selectedNode.getParent().getParent()
 					.equals(arrayRootNode)) {
-				ArrayElement element = getArrayElement(selectedNode.toString());
+				InterpretArray element = getArrayElement(selectedNode.toString());
 				if (element == null) {
 					showErrorMessage("FATAL: ArrayElement is null!");
 					return;
 				}
+                // Load fields
+                fieldListModel.clear();
+                for (InterpretField f : element.getFields())
+                    fieldListModel.addElement(f);
+                fieldList.setEnabled(true);
+                // Load methods
+                methodListModel.clear();
+                for (InterpretMethod m : element.getMethods())
+                    methodListModel.addElement(m);
+                methodList.setEnabled(true);
+	            
 				// Load members
 				arrayCellListModel.clear();
 				for (int i = 0; i < element.length(); i++) {
@@ -946,6 +960,7 @@ public class InterpretWindow extends AbstractWindow {
 			invokeParamsField.setEnabled(false);
 			invokeMethodButton.setEnabled(false);
 			insertNewButton.setEnabled(false);
+			cellIsNullLabel.setText("");
 			if (element != null) {
 				insertNewButton.setEnabled(true);
 				if (element.getObject() != null) {
@@ -961,7 +976,11 @@ public class InterpretWindow extends AbstractWindow {
 					methodList.setEnabled(true);
 					pack();
 					setLocationRelativeTo(null);
+				} else {
+	                cellIsNullLabel.setText("null");
+	                pack();
 				}
+			} else {
 			}
 		}
 	}

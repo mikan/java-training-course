@@ -209,7 +209,7 @@ public class InstantiateWindow extends AbstractWindow {
 						String indexStr = escaped.substring(
 								escaped.indexOf("[") + 1,
 								escaped.lastIndexOf("]"));
-						ArrayElement arrayElement = interpret
+						InterpretArray arrayElement = interpret
 								.getArrayElement(arrayName);
 						if (arrayElement == null) {
 							showErrorMessage("Array not found: " + escaped);
@@ -228,7 +228,7 @@ public class InstantiateWindow extends AbstractWindow {
 					} else {
 						InterpretObject element = interpret
 								.getObjectElement(escaped);
-						ArrayElement arrayElement = interpret
+						InterpretArray arrayElement = interpret
 								.getArrayElement(escaped);
 						if (element == null && arrayElement == null) {
 							showErrorMessage("Object not found: " + escaped);
