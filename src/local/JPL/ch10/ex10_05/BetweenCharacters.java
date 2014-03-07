@@ -19,10 +19,10 @@ public class BetweenCharacters {
             start = end;
             end = temp;
         }
-        String result = "";
+        StringBuilder result = new StringBuilder();
         for (char c = start; c <= end; c++)
-            result += String.valueOf(c);
-        return result;
+            result.append(String.valueOf(c));
+        return result.toString();
     }
 
     public static void main(String[] args) {

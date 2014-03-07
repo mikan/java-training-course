@@ -21,11 +21,11 @@ public class EscapeConverter {
      * @return converted text
      */
     public String convert(String text) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         for (int i = 0; i < text.length(); i++) {
-            result += replace(text.charAt(i));
+            result.append(replace(text.charAt(i)));
         }
-        return result;
+        return result.toString();
     }
 
     /**
