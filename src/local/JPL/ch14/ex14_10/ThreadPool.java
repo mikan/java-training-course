@@ -3,9 +3,6 @@
  */
 package local.JPL.ch14.ex14_10;
 
-import java.util.LinkedList;
-import java.util.Queue;
-
 /**
  * Simple Thread Pool class.
  * 
@@ -21,8 +18,7 @@ import java.util.Queue;
 public class ThreadPool {
 
     private WorkerThread[] threads;
-    private Queue<Runnable> queue;
-    private int queueSize;
+    private ThreadPoolQueue<Runnable> queue;
     private boolean started;
 
     /**
@@ -36,9 +32,8 @@ public class ThreadPool {
     public ThreadPool(final int queueSize, final int numberOfThreads) {
         if (queueSize < 1 || numberOfThreads < 1)
             throw new IllegalArgumentException();
-        this.queueSize = queueSize;
         threads = new WorkerThread[numberOfThreads];
-        queue = new LinkedList<Runnable>();
+        queue = new ThreadPoolQueue<Runnable>(queueSize);
         for (int i = 0; i < threads.length; i++)
             threads[i] = new WorkerThread();
     }
@@ -68,11 +63,11 @@ public class ThreadPool {
      * @throws IllegalStateException if threads has not been started.
      */
     public void stop() {
-        for (int i = 0; i < threads.length; i++) {
-            if (threads[i].isAlive()) {
-                threads[i].stopRequest();
+        for (WorkerThread thread : threads) {
+            if (thread.isAlive()) {
+                thread.stopRequest();
                 try {
-                    threads[i].join();
+                    thread.join();
                 } catch (InterruptedException e) {
                     System.err.println("InterruptedException on stop()");
                 }
@@ -96,21 +91,12 @@ public class ThreadPool {
             throw new NullPointerException();
         if (!started)
             throw new IllegalStateException("Not statrted.");
-        synchronized (queue) {
-            if (queue.size() >= queueSize) {
-                try {
-                    queue.wait();
-                } catch (InterruptedException e) {
-                    System.err.println("InterruptedException on dispatch()");
-                }
-            }
-            queue.add(runnable);
-            queue.notifyAll();
-        }
+        queue.add(runnable);
     }
 
     /**
      * Worker thread.
+     * 
      * @see https://www.ibm.com/developerworks/jp/java/library/j-jtp0730/
      */
     private class WorkerThread extends Thread {
@@ -121,18 +107,7 @@ public class ThreadPool {
         public void run() {
             Runnable runnable = null;
             while (!stopping) {
-                synchronized (queue) {
-                    while (!stopping && queue.isEmpty()) {
-                        try {
-                            queue.wait();
-                        } catch (InterruptedException e) {
-                            System.err.println("InterruptedException on run()");
-                        }
-                    }
-                    runnable = queue.poll();
-                    if (runnable != null)
-                        queue.notifyAll();
-                }
+                runnable = queue.poll();
                 if (runnable != null)
                     runnable.run();
             }
@@ -140,9 +115,7 @@ public class ThreadPool {
 
         private void stopRequest() {
             stopping = true;
-            synchronized (queue) {
-                queue.notifyAll();
-            }
+            queue.stop();
         }
     }
 }
