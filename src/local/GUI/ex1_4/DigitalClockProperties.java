@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+// 勘違いしてプリファレンスではなくプロパティでやってましたテヘペロ
 public class DigitalClockProperties {
 
     private Properties prop;
