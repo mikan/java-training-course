@@ -15,9 +15,8 @@ public class StringUtil5 {
     public static String insertComma(String source) {
         if (source == null)
             throw new NullPointerException();
-        for (int count = 0, i = source.length() - 1; i > 0; i--)
-            if (++count % 3 == 0)
-                source = source.substring(0, i) + "," + source.substring(i);
+        for (int i = source.length() - 3; i > 0; i -= 3)
+            source = source.substring(0, i) + "," + source.substring(i);
         return source;
     }
 
