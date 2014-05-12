@@ -48,7 +48,6 @@ public class DigitalClockWindow extends Window implements ActionListener {
     public DigitalClockWindow(String title, DigitalClockCanvas canvas) {
         super(null, null);
         this.canvas = canvas;
-        printLogo();
 
         // Frame configuration
         setLayout(new BorderLayout());
@@ -199,20 +198,6 @@ public class DigitalClockWindow extends Window implements ActionListener {
             setLocation(getX() + e.getX() - pressedX, getY() + e.getY()
                     - pressedY);
         }
-    }
-
-    public void printLogo() {
-        System.out.println();
-        System.out.println("　■■■■■■　　■■　　　■■■■■　　　　■■■■■　　　■■　　　　■■");
-        System.out.println("　■■　　　■■　■■　　■■　　　■■　　■■　　　■■　　■■　　　　■■");
-        System.out.println("　■■　　　■■　■■　■■　　　　　　　■■　　　　　■■　■■　　　　■■");
-        System.out.println("　■■■■■　　　■■　■■　　　　　　　■■　　　　　■■　■■■■■■■■");
-        System.out.println("　■■　　■■　　■■　■■　　　　　　　■■　　　　　■■　■■　　　　■■");
-        System.out.println("　■■　　　■■　■■　　■■　　　■■　　■■　　　■■　　■■　　　　■■");
-        System.out.println("　■■　　　■■　■■　　　■■■■■　　　　■■■■■　　　■■　　　　■■");
-        System.out.println();
-        System.out.println("　　　　　　　　　i　m　a　g　i　n　e　.　 　c　h　a　n　g　e　.");
-        System.out.println();
     }
 }
 

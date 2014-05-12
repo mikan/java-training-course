@@ -1,7 +1,7 @@
 /*
  * Copyright(C) 2014 Yutaka Kato
  */
-package local.GUI.ex1_4;
+package local.GUI.ex2_2;
 
 import java.awt.Color;
 

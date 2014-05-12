@@ -58,7 +58,7 @@ public class DigitalClockFrame extends Frame implements ActionListener {
         helpMenu.add(aboutMenu);
 
         pack();
-        Point location = new DigitalClockProperties().getLocation();
+        Point location = DigitalClock.getConfiguration().getLocation();
         if (location == null)
             setLocationRelativeTo(null);
         else
@@ -89,7 +89,7 @@ class ApplicationCloseAdapter extends WindowAdapter {
 
     @Override
     public void windowClosing(WindowEvent e) {
-        new DigitalClockProperties().update(frame.getLocation(),
+        DigitalClock.getConfiguration().update(frame.getLocation(),
                 frame.getWidth(), frame.getHeight());
         System.exit(0);
     }

@@ -203,8 +203,8 @@ public class PropertiesDialog extends Dialog implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if (e.getSource().equals(okButton)) {
             // Save properties
-            DigitalClockProperties prop = new DigitalClockProperties();
-            prop.update(owner.getLocation(), owner.getWidth(),
+            DigitalClockConfiguration conf = DigitalClock.getConfiguration();
+            conf.update(owner.getLocation(), owner.getWidth(),
                     owner.getHeight(), canvas.getClockFont(),
                     DisplayColor.valueOf(canvas.getForeground()),
                     DisplayColor.valueOf(canvas.getBackground()));

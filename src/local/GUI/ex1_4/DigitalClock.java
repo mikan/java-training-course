@@ -11,4 +11,8 @@ public class DigitalClock {
     public static void main(String[] args) {
         new DigitalClockCanvas("Digital Clock");
     }
+    
+    protected static DigitalClockConfiguration getConfiguration() {
+        return new ConfigurationPreferences();
+    }
 }

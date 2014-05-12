@@ -31,12 +31,12 @@ class DigitalClockCanvas extends Canvas implements Runnable {
     private BufferStrategy bufferStrategy;
 
     public DigitalClockCanvas(String title) {
-        DigitalClockProperties prop = new DigitalClockProperties();
-        dimension = new Dimension(prop.getWidth(), prop.getHeight());
-        setForeground(prop.getForeground().getValue());
-        setBackground(prop.getBackground().getValue());
-        labelFont = new Font(prop.getFontName(), Font.PLAIN, 11);
-        clockFont = new Font(prop.getFontName(), Font.BOLD, prop.getFontSize());
+        DigitalClockConfiguration conf = DigitalClock.getConfiguration();
+        dimension = new Dimension(conf.getWidth(), conf.getHeight());
+        setForeground(conf.getForeground().getValue());
+        setBackground(conf.getBackground().getValue());
+        labelFont = new Font(conf.getFontName(), Font.PLAIN, 11);
+        clockFont = new Font(conf.getFontName(), Font.BOLD, conf.getFontSize());
         frame = new DigitalClockFrame(title, this);
         createBufferStrategy(BUFFER_SIZE);
         bufferStrategy = getBufferStrategy();
