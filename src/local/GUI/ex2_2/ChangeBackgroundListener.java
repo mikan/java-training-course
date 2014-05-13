@@ -8,8 +8,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
-import local.GUI.ex1_4.DisplayColor;
-
 public class ChangeBackgroundListener implements ItemListener, ActionListener {
 
     private DigitalClockPanel panel;

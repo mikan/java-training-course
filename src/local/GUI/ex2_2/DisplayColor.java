@@ -27,6 +27,8 @@ public enum DisplayColor {
     DARKGRAY(new Color(50, 50, 50));
     /* @formatter:on */
 
+    private static final String COLOR_TIP = "\u25a0\u25a0\u25a0";
+
     private final Color color;
 
     DisplayColor(Color color) {
@@ -47,7 +49,7 @@ public enum DisplayColor {
     public Color getValue() {
         return color;
     }
-    
+
     /**
      * Find item by name.
      * 
@@ -59,7 +61,7 @@ public enum DisplayColor {
     public static DisplayColor nameOf(String color) {
         for (DisplayColor c : values()) {
             String name = c.toString();
-            if (name.equals(color) || name.toLowerCase().equals(color))
+            if (name.equals(color) || name.toLowerCase().equals(color) || c.getHtml().equals(color))
                 return c;
         }
         throw new IllegalArgumentException("Undefined color: " + color);
@@ -74,12 +76,21 @@ public enum DisplayColor {
      * @throws IllegalArgumentException if cannot find item
      */
     public static DisplayColor valueOf(Color color) {
-    	if (color == null)
-    		throw new NullPointerException();
+        if (color == null)
+            throw new NullPointerException();
         for (DisplayColor c : values()) {
             if (c.getValue().equals(color))
                 return c;
         }
         throw new IllegalArgumentException("Undefined color: " + color);
+    }
+
+    public String getHtml() {
+        return "<html>" + "<span style=\"color:#" + getHexValue() + "\"> " + COLOR_TIP + "</span> "
+                + toString() + "</html>";
+    }
+
+    private String getHexValue() {
+        return Integer.toHexString(getValue().getRGB() & 0xffffff);
     }
 }

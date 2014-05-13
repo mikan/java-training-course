@@ -130,9 +130,9 @@ public class PropertiesDialog extends JDialog {
         fontColorComboBox = new JComboBox<>();
         fontColorComboBox.addItemListener(new ChangeForegroundListener(panel));
         for (DisplayColor c : DisplayColor.values()) {
-            fontColorComboBox.addItem(c.toString());
+            fontColorComboBox.addItem(c.getHtml());
             if (c.toString().equals(prevForeground.toString()))
-                fontColorComboBox.setSelectedItem(c.toString());
+                fontColorComboBox.setSelectedItem(c.getHtml());
         }
         constraints.gridx = RIGHT;
         constraints.gridy = row;
@@ -154,9 +154,9 @@ public class PropertiesDialog extends JDialog {
         backgroundColorComboBox = new JComboBox<>();
         backgroundColorComboBox.addItemListener(new ChangeBackgroundListener(panel));
         for (DisplayColor c : DisplayColor.values()) {
-            backgroundColorComboBox.addItem(c.toString());
+            backgroundColorComboBox.addItem(c.getHtml());
             if (c.toString().equals(prevBackground.toString()))
-                backgroundColorComboBox.setSelectedItem(c.toString());
+                backgroundColorComboBox.setSelectedItem(c.getHtml());
         }
         constraints.gridx = RIGHT;
         constraints.gridy = row;
